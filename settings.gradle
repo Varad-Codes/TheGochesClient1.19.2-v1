@@ -1,0 +1,4 @@
+rootProject.name = 'the-goches-client'
+
+include ':mcp'
+project(":mcp").projectDir = file("projects/mcp")

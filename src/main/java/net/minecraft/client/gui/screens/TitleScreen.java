@@ -46,6 +46,7 @@ import net.minecraft.world.level.storage.LevelSummary;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class TitleScreen extends Screen {
@@ -75,6 +76,7 @@ public class TitleScreen extends Screen {
 
    public TitleScreen(boolean p_96733_) {
       super(Component.translatable("narrator.screen.title"));
+      DiscordRP.INSTANCE.updatePresence("Main Menu");
       this.fading = p_96733_;
       this.minceraftEasterEgg = (double)RandomSource.create().nextFloat() < 1.0E-4D;
    }

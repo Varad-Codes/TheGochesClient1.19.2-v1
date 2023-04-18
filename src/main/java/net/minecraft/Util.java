@@ -835,6 +835,7 @@ public class Util {
          this.telemetryName = p_183998_;
       }
 
+      @SuppressWarnings("removal")
       public void openUrl(URL p_137651_) {
          try {
             Process process = AccessController.doPrivileged((PrivilegedExceptionAction<Process>)(() -> {

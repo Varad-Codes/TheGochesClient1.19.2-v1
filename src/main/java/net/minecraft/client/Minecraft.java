@@ -242,6 +242,7 @@ import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.io.FileUtils;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 import org.slf4j.Logger;
+import thegoches.client.Client;
 
 @OnlyIn(Dist.CLIENT)
 public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements WindowEventHandler {
@@ -596,7 +597,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
    }
 
    private String createTitle() {
-      StringBuilder stringbuilder = new StringBuilder("Minecraft");
+      StringBuilder stringbuilder = new StringBuilder("TheGoches Client");
       if (checkModStatus().shouldReportAsModified()) {
          stringbuilder.append("*");
       }
@@ -656,6 +657,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
    }
 
    public void run() {
+      Client.INSTANCE.startup();
       this.gameThread = Thread.currentThread();
       if (Runtime.getRuntime().availableProcessors() > 4) {
          this.gameThread.setPriority(10);
@@ -787,6 +789,8 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
    }
 
    public static void crash(CrashReport p_91333_) {
+
+      Client.INSTANCE.onCrash();
       File file1 = new File(getInstance().gameDirectory, "crash-reports");
       File file2 = new File(file1, "crash-" + Util.getFilenameFormattedDateTime() + "-client.txt");
       Bootstrap.realStdoutPrintln(p_91333_.getFriendlyReport());
@@ -956,6 +960,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
    }
 
    public void destroy() {
+      Client.INSTANCE.shutdown();
       try {
          LOGGER.info("Stopping!");
 
@@ -989,6 +994,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
    }
 
    public void close() {
+      Client.INSTANCE.shutdown();
       if (this.currentFrameProfile != null) {
          this.currentFrameProfile.cancel();
       }

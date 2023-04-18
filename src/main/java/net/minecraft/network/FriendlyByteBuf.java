@@ -65,6 +65,7 @@ import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.BlockHitResult;
 import net.minecraft.world.phys.Vec3;
 
+@SuppressWarnings("unused")
 public class FriendlyByteBuf extends ByteBuf {
    private static final int MAX_VARINT_SIZE = 5;
    private static final int MAX_VARLONG_SIZE = 10;
@@ -100,7 +101,7 @@ public class FriendlyByteBuf extends ByteBuf {
       return 10;
    }
 
-   /** @deprecated */
+//   /** @deprecated */
    public <T> T readWithCodec(Codec<T> p_130058_) {
       CompoundTag compoundtag = this.readAnySizeNbt();
       DataResult<T> dataresult = p_130058_.parse(NbtOps.INSTANCE, compoundtag);
@@ -110,7 +111,7 @@ public class FriendlyByteBuf extends ByteBuf {
       return dataresult.result().get();
    }
 
-   /** @deprecated */
+//   /** @deprecated */
    public <T> void writeWithCodec(Codec<T> p_130060_, T p_130061_) {
       DataResult<Tag> dataresult = p_130060_.encodeStart(NbtOps.INSTANCE, p_130061_);
       dataresult.error().ifPresent((p_178349_) -> {

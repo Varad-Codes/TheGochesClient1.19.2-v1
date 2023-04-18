@@ -4,6 +4,7 @@ buildscript {
         maven { url = 'https://maven.minecraftforge.net' }
         mavenCentral()
         gradlePluginPortal()
+        jcenter()
     }
     dependencies {
         classpath 'net.minecraftforge.gradle:ForgeGradle:5+'
@@ -29,8 +30,8 @@ configurations {
     compile.extendsFrom shade
 }
 
-group = 'TheGochesClient'
-version = '1.0.0'
+group = 'thegoches'
+version = '1.0.0-BETA'
 
 ext {
     minecraft_version = '1.19.2'
@@ -42,10 +43,13 @@ ext {
 
 repositories {
     mavenCentral()
+    jcenter()
+
 }
 
 dependencies {
     implementation 'net.minecraftforge:forgespi:' + spi_version
+    implementation 'club.minnced:java-discord-rpc:2.0.1'
 //    Use the shade to add the lib to the jar
 //    or use compile if you want to load the lib from the version.json
 //    from a maven repo

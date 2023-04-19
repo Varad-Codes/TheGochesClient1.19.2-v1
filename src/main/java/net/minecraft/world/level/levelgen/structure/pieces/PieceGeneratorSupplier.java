@@ -16,29 +16,36 @@ import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfigur
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 @FunctionalInterface
-public interface PieceGeneratorSupplier<C extends FeatureConfiguration> {
-   Optional<PieceGenerator<C>> createGenerator(PieceGeneratorSupplier.Context<C> p_197348_);
+public interface PieceGeneratorSupplier<C extends FeatureConfiguration>
+{
+    Optional<PieceGenerator<C>> createGenerator(PieceGeneratorSupplier.Context<C> p_197348_);
 
-   static <C extends FeatureConfiguration> PieceGeneratorSupplier<C> simple(Predicate<PieceGeneratorSupplier.Context<C>> p_197350_, PieceGenerator<C> p_197351_) {
-      Optional<PieceGenerator<C>> optional = Optional.of(p_197351_);
-      return (p_197344_) -> {
-         return p_197350_.test(p_197344_) ? optional : Optional.empty();
-      };
-   }
+    static <C extends FeatureConfiguration> PieceGeneratorSupplier<C> simple(Predicate<PieceGeneratorSupplier.Context<C>> p_197350_, PieceGenerator<C> p_197351_)
+    {
+        Optional<PieceGenerator<C>> optional = Optional.of(p_197351_);
+        return (p_197344_) ->
+        {
+            return p_197350_.test(p_197344_) ? optional : Optional.empty();
+        };
+    }
 
-   static <C extends FeatureConfiguration> Predicate<PieceGeneratorSupplier.Context<C>> checkForBiomeOnTop(Heightmap.Types p_197346_) {
-      return (p_197340_) -> {
-         return p_197340_.validBiomeOnTop(p_197346_);
-      };
-   }
+    static <C extends FeatureConfiguration> Predicate<PieceGeneratorSupplier.Context<C>> checkForBiomeOnTop(Heightmap.Types p_197346_)
+    {
+        return (p_197340_) ->
+        {
+            return p_197340_.validBiomeOnTop(p_197346_);
+        };
+    }
 
-   public static record Context<C extends FeatureConfiguration>(ChunkGenerator chunkGenerator, BiomeSource biomeSource, RandomState randomState, long seed, ChunkPos chunkPos, C config, LevelHeightAccessor heightAccessor, Predicate<Holder<Biome>> validBiome, StructureTemplateManager structureTemplateManager, RegistryAccess registryAccess) {
-      public boolean validBiomeOnTop(Heightmap.Types p_197381_) {
-         int i = this.chunkPos.getMiddleBlockX();
-         int j = this.chunkPos.getMiddleBlockZ();
-         int k = this.chunkGenerator.getFirstOccupiedHeight(i, j, p_197381_, this.heightAccessor, this.randomState);
-         Holder<Biome> holder = this.chunkGenerator.getBiomeSource().getNoiseBiome(QuartPos.fromBlock(i), QuartPos.fromBlock(k), QuartPos.fromBlock(j), this.randomState.sampler());
-         return this.validBiome.test(holder);
-      }
-   }
+    public static record Context<C extends FeatureConfiguration>(ChunkGenerator chunkGenerator, BiomeSource biomeSource, RandomState randomState, long seed, ChunkPos chunkPos, C config, LevelHeightAccessor heightAccessor, Predicate<Holder<Biome>> validBiome, StructureTemplateManager structureTemplateManager, RegistryAccess registryAccess)
+    {
+        public boolean validBiomeOnTop(Heightmap.Types p_197381_)
+        {
+            int i = this.chunkPos.getMiddleBlockX();
+            int j = this.chunkPos.getMiddleBlockZ();
+            int k = this.chunkGenerator.getFirstOccupiedHeight(i, j, p_197381_, this.heightAccessor, this.randomState);
+            Holder<Biome> holder = this.chunkGenerator.getBiomeSource().getNoiseBiome(QuartPos.fromBlock(i), QuartPos.fromBlock(k), QuartPos.fromBlock(j), this.randomState.sampler());
+            return this.validBiome.test(holder);
+        }
+    }
 }

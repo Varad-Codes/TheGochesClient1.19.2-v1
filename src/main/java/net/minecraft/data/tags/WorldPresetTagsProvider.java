@@ -6,13 +6,16 @@ import net.minecraft.tags.WorldPresetTags;
 import net.minecraft.world.level.levelgen.presets.WorldPreset;
 import net.minecraft.world.level.levelgen.presets.WorldPresets;
 
-public class WorldPresetTagsProvider extends TagsProvider<WorldPreset> {
-   public WorldPresetTagsProvider(DataGenerator p_236457_) {
-      super(p_236457_, BuiltinRegistries.WORLD_PRESET);
-   }
+public class WorldPresetTagsProvider extends TagsProvider<WorldPreset>
+{
+    public WorldPresetTagsProvider(DataGenerator p_236457_)
+    {
+        super(p_236457_, BuiltinRegistries.WORLD_PRESET);
+    }
 
-   protected void addTags() {
-      this.tag(WorldPresetTags.NORMAL).add(WorldPresets.NORMAL).add(WorldPresets.FLAT).add(WorldPresets.LARGE_BIOMES).add(WorldPresets.AMPLIFIED).add(WorldPresets.SINGLE_BIOME_SURFACE);
-      this.tag(WorldPresetTags.EXTENDED).addTag(WorldPresetTags.NORMAL).add(WorldPresets.DEBUG);
-   }
+    protected void addTags()
+    {
+        this.tag(WorldPresetTags.NORMAL).a(WorldPresets.NORMAL).a(WorldPresets.FLAT).a(WorldPresets.LARGE_BIOMES).a(WorldPresets.AMPLIFIED).a(WorldPresets.SINGLE_BIOME_SURFACE);
+        this.tag(WorldPresetTags.EXTENDED).addTag(WorldPresetTags.NORMAL).a(WorldPresets.DEBUG);
+    }
 }

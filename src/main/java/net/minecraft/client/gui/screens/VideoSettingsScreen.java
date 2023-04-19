@@ -2,161 +2,296 @@ package net.minecraft.client.gui.screens;
 
 import com.google.common.collect.ImmutableList;
 import com.google.common.collect.Lists;
-import com.mojang.blaze3d.platform.Monitor;
-import com.mojang.blaze3d.platform.VideoMode;
 import com.mojang.blaze3d.platform.Window;
 import com.mojang.blaze3d.vertex.PoseStack;
 import java.util.List;
-import java.util.Optional;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.GraphicsStatus;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.OptionInstance;
 import net.minecraft.client.Options;
-import net.minecraft.client.gui.components.Button;
-import net.minecraft.client.gui.components.OptionsList;
+import net.minecraft.client.gui.components.AbstractWidget;
 import net.minecraft.client.renderer.GpuWarnlistManager;
-import net.minecraft.network.chat.CommonComponents;
+import net.minecraft.client.resources.language.I18n;
 import net.minecraft.network.chat.Component;
-import net.minecraft.util.FormattedCharSequence;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.optifine.Config;
+import net.optifine.Lang;
+import net.optifine.config.Option;
+import net.optifine.gui.GuiAnimationSettingsOF;
+import net.optifine.gui.GuiButtonOF;
+import net.optifine.gui.GuiDetailSettingsOF;
+import net.optifine.gui.GuiOtherSettingsOF;
+import net.optifine.gui.GuiPerformanceSettingsOF;
+import net.optifine.gui.GuiQualitySettingsOF;
+import net.optifine.gui.GuiScreenButtonOF;
+import net.optifine.gui.GuiScreenOF;
+import net.optifine.gui.TooltipManager;
+import net.optifine.gui.TooltipProviderOptions;
+import net.optifine.shaders.gui.GuiShaders;
+import net.optifine.util.GuiUtils;
+import org.lwjgl.glfw.GLFW;
 
-@OnlyIn(Dist.CLIENT)
-public class VideoSettingsScreen extends OptionsSubScreen {
-   private static final Component FABULOUS = Component.translatable("options.graphics.fabulous").withStyle(ChatFormatting.ITALIC);
-   private static final Component WARNING_MESSAGE = Component.translatable("options.graphics.warning.message", FABULOUS, FABULOUS);
-   private static final Component WARNING_TITLE = Component.translatable("options.graphics.warning.title").withStyle(ChatFormatting.RED);
-   private static final Component BUTTON_ACCEPT = Component.translatable("options.graphics.warning.accept");
-   private static final Component BUTTON_CANCEL = Component.translatable("options.graphics.warning.cancel");
-   private OptionsList list;
-   private final GpuWarnlistManager gpuWarnlistManager;
-   private final int oldMipmaps;
+public class VideoSettingsScreen extends GuiScreenOF
+{
+    private Screen parentGuiScreen;
+    private Options guiGameSettings;
+    private GpuWarnlistManager gpuWarnlistManager;
+    private static final Component FABULOUS = Component.translatable("options.graphics.fabulous").withStyle(ChatFormatting.ITALIC);
+    private static final Component WARNING_MESSAGE = Component.a("options.graphics.warning.message", FABULOUS, FABULOUS);
+    private static final Component WARNING_TITLE = Component.translatable("options.graphics.warning.title").withStyle(ChatFormatting.RED);
+    private static final Component BUTTON_ACCEPT = Component.translatable("options.graphics.warning.accept");
+    private static final Component BUTTON_CANCEL = Component.translatable("options.graphics.warning.cancel");
+    private static final Component NEW_LINE = Component.literal("\n");
+    private TooltipManager tooltipManager = new TooltipManager(this, new TooltipProviderOptions());
+    private List<AbstractWidget> buttonList = this.getButtonList();
+    private AbstractWidget buttonGuiScale;
 
-   private static OptionInstance<?>[] options(Options p_232812_) {
-      return new OptionInstance[]{p_232812_.graphicsMode(), p_232812_.renderDistance(), p_232812_.prioritizeChunkUpdates(), p_232812_.simulationDistance(), p_232812_.ambientOcclusion(), p_232812_.framerateLimit(), p_232812_.enableVsync(), p_232812_.bobView(), p_232812_.guiScale(), p_232812_.attackIndicator(), p_232812_.gamma(), p_232812_.cloudStatus(), p_232812_.fullscreen(), p_232812_.particles(), p_232812_.mipmapLevels(), p_232812_.entityShadows(), p_232812_.screenEffectScale(), p_232812_.entityDistanceScaling(), p_232812_.fovEffectScale(), p_232812_.showAutosaveIndicator()};
-   }
+    public VideoSettingsScreen(Screen pLastScreen, Options pOptions)
+    {
+        super(Component.translatable("options.videoTitle"));
+        this.parentGuiScreen = pLastScreen;
+        this.guiGameSettings = pOptions;
+        this.gpuWarnlistManager = this.parentGuiScreen.minecraft.getGpuWarnlistManager();
+        this.gpuWarnlistManager.resetWarnings();
 
-   public VideoSettingsScreen(Screen p_96806_, Options p_96807_) {
-      super(p_96806_, p_96807_, Component.translatable("options.videoTitle"));
-      this.gpuWarnlistManager = p_96806_.minecraft.getGpuWarnlistManager();
-      this.gpuWarnlistManager.resetWarnings();
-      if (p_96807_.graphicsMode().get() == GraphicsStatus.FABULOUS) {
-         this.gpuWarnlistManager.dismissWarning();
-      }
+        if (this.guiGameSettings.graphicsMode().get() == GraphicsStatus.FABULOUS)
+        {
+            this.gpuWarnlistManager.dismissWarning();
+        }
+    }
 
-      this.oldMipmaps = p_96807_.mipmapLevels().get();
-   }
+    public void init()
+    {
+        this.buttonList.clear();
+        OptionInstance[] aoptioninstance = new OptionInstance[] {this.settings.GRAPHICS, this.settings.RENDER_DISTANCE, this.settings.AO, this.settings.SIMULATION_DISTANCE, Option.AO_LEVEL, this.settings.FRAMERATE_LIMIT, this.settings.GUI_SCALE, this.settings.ENTITY_SHADOWS, this.settings.GAMMA, this.settings.ATTACK_INDICATOR, Option.DYNAMIC_LIGHTS, Option.DYNAMIC_FOV};
 
-   protected void init() {
-      this.list = new OptionsList(this.minecraft, this.width, this.height, 32, this.height - 32, 25);
-      int i = -1;
-      Window window = this.minecraft.getWindow();
-      Monitor monitor = window.findBestMonitor();
-      int j;
-      if (monitor == null) {
-         j = -1;
-      } else {
-         Optional<VideoMode> optional = window.getPreferredFullscreenVideoMode();
-         j = optional.map(monitor::getVideoModeIndex).orElse(-1);
-      }
+        for (int i = 0; i < aoptioninstance.length; ++i)
+        {
+            OptionInstance optioninstance = aoptioninstance[i];
 
-      OptionInstance<Integer> optioninstance = new OptionInstance<>("options.fullscreen.resolution", OptionInstance.noTooltip(), (p_232806_, p_232807_) -> {
-         if (monitor == null) {
-            return Component.translatable("options.fullscreen.unavailable");
-         } else {
-            return p_232807_ == -1 ? Options.genericValueLabel(p_232806_, Component.translatable("options.fullscreen.current")) : Options.genericValueLabel(p_232806_, Component.literal(monitor.getMode(p_232807_).toString()));
-         }
-      }, new OptionInstance.IntRange(-1, monitor != null ? monitor.getModeCount() - 1 : -1), j, (p_232803_) -> {
-         if (monitor != null) {
-            window.setPreferredFullscreenVideoMode(p_232803_ == -1 ? Optional.empty() : Optional.of(monitor.getMode(p_232803_)));
-         }
-      });
-      this.list.addBig(optioninstance);
-      this.list.addBig(this.options.biomeBlendRadius());
-      this.list.addSmall(options(this.options));
-      this.addWidget(this.list);
-      this.addRenderableWidget(new Button(this.width / 2 - 100, this.height - 27, 200, 20, CommonComponents.GUI_DONE, (p_232810_) -> {
-         this.minecraft.options.save();
-         window.changeFullscreenVideoMode();
-         this.minecraft.setScreen(this.lastScreen);
-      }));
-   }
+            if (optioninstance != null)
+            {
+                int j = this.width / 2 - 155 + i % 2 * 160;
+                int k = this.height / 6 + 21 * (i / 2) - 12;
+                AbstractWidget abstractwidget = this.addRenderableWidget(optioninstance.createButton(this.minecraft.options, j, k, 150));
 
-   public void removed() {
-      if (this.options.mipmapLevels().get() != this.oldMipmaps) {
-         this.minecraft.updateMaxMipLevel(this.options.mipmapLevels().get());
-         this.minecraft.delayTextureReload();
-      }
+                if (optioninstance == this.settings.GUI_SCALE)
+                {
+                    this.buttonGuiScale = abstractwidget;
+                }
+            }
+        }
 
-      super.removed();
-   }
+        int l = this.height / 6 + 21 * (aoptioninstance.length / 2) - 12;
+        int i1 = 0;
+        i1 = this.width / 2 - 155 + 0;
+        this.addRenderableWidget(new GuiScreenButtonOF(231, i1, l, Lang.get("of.options.shaders")));
+        i1 = this.width / 2 - 155 + 160;
+        this.addRenderableWidget(new GuiScreenButtonOF(202, i1, l, Lang.get("of.options.quality")));
+        l += 21;
+        i1 = this.width / 2 - 155 + 0;
+        this.addRenderableWidget(new GuiScreenButtonOF(201, i1, l, Lang.get("of.options.details")));
+        i1 = this.width / 2 - 155 + 160;
+        this.addRenderableWidget(new GuiScreenButtonOF(212, i1, l, Lang.get("of.options.performance")));
+        l += 21;
+        i1 = this.width / 2 - 155 + 0;
+        this.addRenderableWidget(new GuiScreenButtonOF(211, i1, l, Lang.get("of.options.animations")));
+        i1 = this.width / 2 - 155 + 160;
+        this.addRenderableWidget(new GuiScreenButtonOF(222, i1, l, Lang.get("of.options.other")));
+        l += 21;
+        this.addRenderableWidget(new GuiButtonOF(200, this.width / 2 - 100, this.height / 6 + 168 + 11, I18n.a("gui.done")));
+        this.buttonList = this.getButtonList();
+    }
 
-   public boolean mouseClicked(double p_96809_, double p_96810_, int p_96811_) {
-      int i = this.options.guiScale().get();
-      if (super.mouseClicked(p_96809_, p_96810_, p_96811_)) {
-         if (this.options.guiScale().get() != i) {
-            this.minecraft.resizeDisplay();
-         }
+    protected void actionPerformed(AbstractWidget button)
+    {
+        if (button == this.buttonGuiScale)
+        {
+            this.updateGuiScale();
+        }
 
-         if (this.gpuWarnlistManager.isShowingWarning()) {
-            List<Component> list = Lists.newArrayList(WARNING_MESSAGE, CommonComponents.NEW_LINE);
+        this.checkFabulousWarning();
+
+        if (button instanceof GuiButtonOF guibuttonof)
+        {
+            this.actionPerformed(guibuttonof, 1);
+        }
+    }
+
+    private void checkFabulousWarning()
+    {
+        if (this.gpuWarnlistManager.isShowingWarning())
+        {
+            List<Component> list = Lists.newArrayList(WARNING_MESSAGE, NEW_LINE);
             String s = this.gpuWarnlistManager.getRendererWarnings();
-            if (s != null) {
-               list.add(CommonComponents.NEW_LINE);
-               list.add(Component.translatable("options.graphics.warning.renderer", s).withStyle(ChatFormatting.GRAY));
+
+            if (s != null)
+            {
+                list.add(NEW_LINE);
+                list.add(Component.a("options.graphics.warning.renderer", s).withStyle(ChatFormatting.GRAY));
             }
 
             String s1 = this.gpuWarnlistManager.getVendorWarnings();
-            if (s1 != null) {
-               list.add(CommonComponents.NEW_LINE);
-               list.add(Component.translatable("options.graphics.warning.vendor", s1).withStyle(ChatFormatting.GRAY));
+
+            if (s1 != null)
+            {
+                list.add(NEW_LINE);
+                list.add(Component.a("options.graphics.warning.vendor", s1).withStyle(ChatFormatting.GRAY));
             }
 
             String s2 = this.gpuWarnlistManager.getVersionWarnings();
-            if (s2 != null) {
-               list.add(CommonComponents.NEW_LINE);
-               list.add(Component.translatable("options.graphics.warning.version", s2).withStyle(ChatFormatting.GRAY));
+
+            if (s2 != null)
+            {
+                list.add(NEW_LINE);
+                list.add(Component.a("options.graphics.warning.version", s2).withStyle(ChatFormatting.GRAY));
             }
 
-            this.minecraft.setScreen(new PopupScreen(WARNING_TITLE, list, ImmutableList.of(new PopupScreen.ButtonOption(BUTTON_ACCEPT, (p_232816_) -> {
-               this.options.graphicsMode().set(GraphicsStatus.FABULOUS);
-               Minecraft.getInstance().levelRenderer.allChanged();
-               this.gpuWarnlistManager.dismissWarning();
-               this.minecraft.setScreen(this);
-            }), new PopupScreen.ButtonOption(BUTTON_CANCEL, (p_232814_) -> {
-               this.gpuWarnlistManager.dismissWarningAndSkipFabulous();
-               this.minecraft.setScreen(this);
+            this.minecraft.setScreen(new PopupScreen(WARNING_TITLE, list, ImmutableList.of(new PopupScreen.ButtonOption(BUTTON_ACCEPT, (btn) ->
+            {
+                this.guiGameSettings.graphicsMode().set(GraphicsStatus.FABULOUS);
+                Minecraft.getInstance().levelRenderer.allChanged();
+                this.gpuWarnlistManager.dismissWarning();
+                this.minecraft.setScreen(this);
+            }), new PopupScreen.ButtonOption(BUTTON_CANCEL, (btn) ->
+            {
+                this.gpuWarnlistManager.dismissWarningAndSkipFabulous();
+                this.minecraft.setScreen(this);
             }))));
-         }
+        }
+    }
 
-         return true;
-      } else {
-         return false;
-      }
-   }
+    protected void actionPerformedRightClick(AbstractWidget button)
+    {
+        if (button == this.buttonGuiScale)
+        {
+            int i = this.guiGameSettings.guiScale().get() - 1;
 
-   public boolean mouseReleased(double p_96823_, double p_96824_, int p_96825_) {
-      int i = this.options.guiScale().get();
-      if (super.mouseReleased(p_96823_, p_96824_, p_96825_)) {
-         return true;
-      } else if (this.list.mouseReleased(p_96823_, p_96824_, p_96825_)) {
-         if (this.options.guiScale().get() != i) {
-            this.minecraft.resizeDisplay();
-         }
+            if (i < 0)
+            {
+                i = Minecraft.getInstance().getWindow().calculateScale(0, Minecraft.getInstance().isEnforceUnicode());
+            }
 
-         return true;
-      } else {
-         return false;
-      }
-   }
+            this.settings.GUI_SCALE.set(i);
+            this.updateGuiScale();
+        }
+    }
 
-   public void render(PoseStack p_96813_, int p_96814_, int p_96815_, float p_96816_) {
-      this.renderBackground(p_96813_);
-      this.list.render(p_96813_, p_96814_, p_96815_, p_96816_);
-      drawCenteredString(p_96813_, this.font, this.title, this.width / 2, 5, 16777215);
-      super.render(p_96813_, p_96814_, p_96815_, p_96816_);
-      List<FormattedCharSequence> list = tooltipAt(this.list, p_96814_, p_96815_);
-      this.renderTooltip(p_96813_, list, p_96814_, p_96815_);
-   }
+    private void updateGuiScale()
+    {
+        this.minecraft.resizeDisplay();
+        Window window = this.minecraft.getWindow();
+        int i = GuiUtils.getWidth(this.buttonGuiScale);
+        int j = GuiUtils.getHeight(this.buttonGuiScale);
+        int k = this.buttonGuiScale.x + (i - j);
+        int l = this.buttonGuiScale.y + j / 2;
+        GLFW.glfwSetCursorPos(window.getWindow(), (double)k * window.getGuiScale(), (double)l * window.getGuiScale());
+    }
+
+    private void actionPerformed(GuiButtonOF button, int val)
+    {
+        if (button.active)
+        {
+            if (button.id == 200)
+            {
+                this.minecraft.options.save();
+                this.minecraft.setScreen(this.parentGuiScreen);
+            }
+
+            if (button.id == 201)
+            {
+                this.minecraft.options.save();
+                GuiDetailSettingsOF guidetailsettingsof = new GuiDetailSettingsOF(this, this.guiGameSettings);
+                this.minecraft.setScreen(guidetailsettingsof);
+            }
+
+            if (button.id == 202)
+            {
+                this.minecraft.options.save();
+                GuiQualitySettingsOF guiqualitysettingsof = new GuiQualitySettingsOF(this, this.guiGameSettings);
+                this.minecraft.setScreen(guiqualitysettingsof);
+            }
+
+            if (button.id == 211)
+            {
+                this.minecraft.options.save();
+                GuiAnimationSettingsOF guianimationsettingsof = new GuiAnimationSettingsOF(this, this.guiGameSettings);
+                this.minecraft.setScreen(guianimationsettingsof);
+            }
+
+            if (button.id == 212)
+            {
+                this.minecraft.options.save();
+                GuiPerformanceSettingsOF guiperformancesettingsof = new GuiPerformanceSettingsOF(this, this.guiGameSettings);
+                this.minecraft.setScreen(guiperformancesettingsof);
+            }
+
+            if (button.id == 222)
+            {
+                this.minecraft.options.save();
+                GuiOtherSettingsOF guiothersettingsof = new GuiOtherSettingsOF(this, this.guiGameSettings);
+                this.minecraft.setScreen(guiothersettingsof);
+            }
+
+            if (button.id == 231)
+            {
+                if (Config.isAntialiasing() || Config.isAntialiasingConfigured())
+                {
+                    Config.showGuiMessage(Lang.get("of.message.shaders.aa1"), Lang.get("of.message.shaders.aa2"));
+                    return;
+                }
+
+                if (Config.isGraphicsFabulous())
+                {
+                    Config.showGuiMessage(Lang.get("of.message.shaders.gf1"), Lang.get("of.message.shaders.gf2"));
+                    return;
+                }
+
+                this.minecraft.options.save();
+                GuiShaders guishaders = new GuiShaders(this, this.guiGameSettings);
+                this.minecraft.setScreen(guishaders);
+            }
+        }
+    }
+
+    public void removed()
+    {
+        this.minecraft.options.save();
+        super.removed();
+    }
+
+    public void render(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick)
+    {
+        this.renderBackground(pPoseStack);
+        drawCenteredString(pPoseStack, this.minecraft.font, this.title, this.width / 2, 15, 16777215);
+        String s = Config.getVersion();
+        String s1 = "HD_U";
+
+        if (s1.equals("HD"))
+        {
+            s = "OptiFine HD H9";
+        }
+
+        if (s1.equals("HD_U"))
+        {
+            s = "OptiFine HD H9 Ultra";
+        }
+
+        if (s1.equals("L"))
+        {
+            s = "OptiFine H9 Light";
+        }
+
+        drawString(pPoseStack, this.minecraft.font, s, 2, this.height - 10, 8421504);
+        String s2 = "Minecraft 1.19.2";
+        int i = this.minecraft.font.width(s2);
+        drawString(pPoseStack, this.minecraft.font, s2, this.width - i - 2, this.height - 10, 8421504);
+        super.render(pPoseStack, pMouseX, pMouseY, pPartialTick);
+        this.tooltipManager.drawTooltips(pPoseStack, pMouseX, pMouseY, this.buttonList);
+    }
+
+    public static String getGuiChatText(ChatScreen guiChat)
+    {
+        return guiChat.input.getValue();
+    }
 }

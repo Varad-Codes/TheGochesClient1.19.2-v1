@@ -26,236 +26,298 @@ import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
 
-public abstract class HangingEntity extends Entity {
-   private static final Logger LOGGER = LogUtils.getLogger();
-   protected static final Predicate<Entity> HANGING_ENTITY = (p_31734_) -> {
-      return p_31734_ instanceof HangingEntity;
-   };
-   private int checkInterval;
-   protected BlockPos pos;
-   protected Direction direction = Direction.SOUTH;
+public abstract class HangingEntity extends Entity
+{
+    private static final Logger LOGGER = LogUtils.getLogger();
+    protected static final Predicate<Entity> HANGING_ENTITY = (p_31734_) ->
+    {
+        return p_31734_ instanceof HangingEntity;
+    };
+    private int checkInterval;
+    protected BlockPos pos;
+    protected Direction direction = Direction.SOUTH;
 
-   protected HangingEntity(EntityType<? extends HangingEntity> p_31703_, Level p_31704_) {
-      super(p_31703_, p_31704_);
-   }
+    protected HangingEntity(EntityType <? extends HangingEntity > p_31703_, Level p_31704_)
+    {
+        super(p_31703_, p_31704_);
+    }
 
-   protected HangingEntity(EntityType<? extends HangingEntity> p_31706_, Level p_31707_, BlockPos p_31708_) {
-      this(p_31706_, p_31707_);
-      this.pos = p_31708_;
-   }
+    protected HangingEntity(EntityType <? extends HangingEntity > p_31706_, Level p_31707_, BlockPos p_31708_)
+    {
+        this(p_31706_, p_31707_);
+        this.pos = p_31708_;
+    }
 
-   protected void defineSynchedData() {
-   }
+    protected void defineSynchedData()
+    {
+    }
 
-   protected void setDirection(Direction p_31728_) {
-      Validate.notNull(p_31728_);
-      Validate.isTrue(p_31728_.getAxis().isHorizontal());
-      this.direction = p_31728_;
-      this.setYRot((float)(this.direction.get2DDataValue() * 90));
-      this.yRotO = this.getYRot();
-      this.recalculateBoundingBox();
-   }
+    protected void setDirection(Direction pFacingDirection)
+    {
+        Validate.notNull(pFacingDirection);
+        Validate.isTrue(pFacingDirection.getAxis().isHorizontal());
+        this.direction = pFacingDirection;
+        this.setYRot((float)(this.direction.get2DDataValue() * 90));
+        this.yRotO = this.getYRot();
+        this.recalculateBoundingBox();
+    }
 
-   protected void recalculateBoundingBox() {
-      if (this.direction != null) {
-         double d0 = (double)this.pos.getX() + 0.5D;
-         double d1 = (double)this.pos.getY() + 0.5D;
-         double d2 = (double)this.pos.getZ() + 0.5D;
-         double d3 = 0.46875D;
-         double d4 = this.offs(this.getWidth());
-         double d5 = this.offs(this.getHeight());
-         d0 -= (double)this.direction.getStepX() * 0.46875D;
-         d2 -= (double)this.direction.getStepZ() * 0.46875D;
-         d1 += d5;
-         Direction direction = this.direction.getCounterClockWise();
-         d0 += d4 * (double)direction.getStepX();
-         d2 += d4 * (double)direction.getStepZ();
-         this.setPosRaw(d0, d1, d2);
-         double d6 = (double)this.getWidth();
-         double d7 = (double)this.getHeight();
-         double d8 = (double)this.getWidth();
-         if (this.direction.getAxis() == Direction.Axis.Z) {
-            d8 = 1.0D;
-         } else {
-            d6 = 1.0D;
-         }
+    protected void recalculateBoundingBox()
+    {
+        if (this.direction != null)
+        {
+            double d0 = (double)this.pos.getX() + 0.5D;
+            double d1 = (double)this.pos.getY() + 0.5D;
+            double d2 = (double)this.pos.getZ() + 0.5D;
+            double d3 = 0.46875D;
+            double d4 = this.offs(this.getWidth());
+            double d5 = this.offs(this.getHeight());
+            d0 -= (double)this.direction.getStepX() * 0.46875D;
+            d2 -= (double)this.direction.getStepZ() * 0.46875D;
+            d1 += d5;
+            Direction direction = this.direction.getCounterClockWise();
+            d0 += d4 * (double)direction.getStepX();
+            d2 += d4 * (double)direction.getStepZ();
+            this.setPosRaw(d0, d1, d2);
+            double d6 = (double)this.getWidth();
+            double d7 = (double)this.getHeight();
+            double d8 = (double)this.getWidth();
 
-         d6 /= 32.0D;
-         d7 /= 32.0D;
-         d8 /= 32.0D;
-         this.setBoundingBox(new AABB(d0 - d6, d1 - d7, d2 - d8, d0 + d6, d1 + d7, d2 + d8));
-      }
-   }
-
-   private double offs(int p_31710_) {
-      return p_31710_ % 32 == 0 ? 0.5D : 0.0D;
-   }
-
-   public void tick() {
-      if (!this.level.isClientSide) {
-         this.checkOutOfWorld();
-         if (this.checkInterval++ == 100) {
-            this.checkInterval = 0;
-            if (!this.isRemoved() && !this.survives()) {
-               this.discard();
-               this.dropItem((Entity)null);
+            if (this.direction.getAxis() == Direction.Axis.Z)
+            {
+                d8 = 1.0D;
             }
-         }
-      }
-
-   }
-
-   public boolean survives() {
-      if (!this.level.noCollision(this)) {
-         return false;
-      } else {
-         int i = Math.max(1, this.getWidth() / 16);
-         int j = Math.max(1, this.getHeight() / 16);
-         BlockPos blockpos = this.pos.relative(this.direction.getOpposite());
-         Direction direction = this.direction.getCounterClockWise();
-         BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
-
-         for(int k = 0; k < i; ++k) {
-            for(int l = 0; l < j; ++l) {
-               int i1 = (i - 1) / -2;
-               int j1 = (j - 1) / -2;
-               blockpos$mutableblockpos.set(blockpos).move(direction, k + i1).move(Direction.UP, l + j1);
-               BlockState blockstate = this.level.getBlockState(blockpos$mutableblockpos);
-               if (!blockstate.getMaterial().isSolid() && !DiodeBlock.isDiode(blockstate)) {
-                  return false;
-               }
+            else
+            {
+                d6 = 1.0D;
             }
-         }
 
-         return this.level.getEntities(this, this.getBoundingBox(), HANGING_ENTITY).isEmpty();
-      }
-   }
+            d6 /= 32.0D;
+            d7 /= 32.0D;
+            d8 /= 32.0D;
+            this.setBoundingBox(new AABB(d0 - d6, d1 - d7, d2 - d8, d0 + d6, d1 + d7, d2 + d8));
+        }
+    }
 
-   public boolean isPickable() {
-      return true;
-   }
+    private double offs(int p_31710_)
+    {
+        return p_31710_ % 32 == 0 ? 0.5D : 0.0D;
+    }
 
-   public boolean skipAttackInteraction(Entity p_31750_) {
-      if (p_31750_ instanceof Player player) {
-         return !this.level.mayInteract(player, this.pos) ? true : this.hurt(DamageSource.playerAttack(player), 0.0F);
-      } else {
-         return false;
-      }
-   }
+    public void tick()
+    {
+        if (!this.level.isClientSide)
+        {
+            this.checkOutOfWorld();
 
-   public Direction getDirection() {
-      return this.direction;
-   }
+            if (this.checkInterval++ == 100)
+            {
+                this.checkInterval = 0;
 
-   public boolean hurt(DamageSource p_31715_, float p_31716_) {
-      if (this.isInvulnerableTo(p_31715_)) {
-         return false;
-      } else {
-         if (!this.isRemoved() && !this.level.isClientSide) {
+                if (!this.isRemoved() && !this.survives())
+                {
+                    this.discard();
+                    this.dropItem((Entity)null);
+                }
+            }
+        }
+    }
+
+    public boolean survives()
+    {
+        if (!this.level.noCollision(this))
+        {
+            return false;
+        }
+        else
+        {
+            int i = Math.max(1, this.getWidth() / 16);
+            int j = Math.max(1, this.getHeight() / 16);
+            BlockPos blockpos = this.pos.relative(this.direction.getOpposite());
+            Direction direction = this.direction.getCounterClockWise();
+            BlockPos.MutableBlockPos blockpos$mutableblockpos = new BlockPos.MutableBlockPos();
+
+            for (int k = 0; k < i; ++k)
+            {
+                for (int l = 0; l < j; ++l)
+                {
+                    int i1 = (i - 1) / -2;
+                    int j1 = (j - 1) / -2;
+                    blockpos$mutableblockpos.set(blockpos).move(direction, k + i1).move(Direction.UP, l + j1);
+                    BlockState blockstate = this.level.getBlockState(blockpos$mutableblockpos);
+
+                    if (!blockstate.getMaterial().isSolid() && !DiodeBlock.isDiode(blockstate))
+                    {
+                        return false;
+                    }
+                }
+            }
+
+            return this.level.getEntities(this, this.getBoundingBox(), HANGING_ENTITY).isEmpty();
+        }
+    }
+
+    public boolean isPickable()
+    {
+        return true;
+    }
+
+    public boolean skipAttackInteraction(Entity pEntity)
+    {
+        if (pEntity instanceof Player player)
+        {
+            return !this.level.mayInteract(player, this.pos) ? true : this.hurt(DamageSource.playerAttack(player), 0.0F);
+        }
+        else
+        {
+            return false;
+        }
+    }
+
+    public Direction getDirection()
+    {
+        return this.direction;
+    }
+
+    public boolean hurt(DamageSource pSource, float pAmount)
+    {
+        if (this.isInvulnerableTo(pSource))
+        {
+            return false;
+        }
+        else
+        {
+            if (!this.isRemoved() && !this.level.isClientSide)
+            {
+                this.kill();
+                this.markHurt();
+                this.dropItem(pSource.getEntity());
+            }
+
+            return true;
+        }
+    }
+
+    public void move(MoverType pType, Vec3 pPos)
+    {
+        if (!this.level.isClientSide && !this.isRemoved() && pPos.lengthSqr() > 0.0D)
+        {
             this.kill();
-            this.markHurt();
-            this.dropItem(p_31715_.getEntity());
-         }
+            this.dropItem((Entity)null);
+        }
+    }
 
-         return true;
-      }
-   }
+    public void push(double pX, double p_31745_, double pY)
+    {
+        if (!this.level.isClientSide && !this.isRemoved() && pX * pX + p_31745_ * p_31745_ + pY * pY > 0.0D)
+        {
+            this.kill();
+            this.dropItem((Entity)null);
+        }
+    }
 
-   public void move(MoverType p_31719_, Vec3 p_31720_) {
-      if (!this.level.isClientSide && !this.isRemoved() && p_31720_.lengthSqr() > 0.0D) {
-         this.kill();
-         this.dropItem((Entity)null);
-      }
+    public void addAdditionalSaveData(CompoundTag pCompound)
+    {
+        BlockPos blockpos = this.getPos();
+        pCompound.putInt("TileX", blockpos.getX());
+        pCompound.putInt("TileY", blockpos.getY());
+        pCompound.putInt("TileZ", blockpos.getZ());
+    }
 
-   }
+    public void readAdditionalSaveData(CompoundTag pCompound)
+    {
+        BlockPos blockpos = new BlockPos(pCompound.getInt("TileX"), pCompound.getInt("TileY"), pCompound.getInt("TileZ"));
 
-   public void push(double p_31744_, double p_31745_, double p_31746_) {
-      if (!this.level.isClientSide && !this.isRemoved() && p_31744_ * p_31744_ + p_31745_ * p_31745_ + p_31746_ * p_31746_ > 0.0D) {
-         this.kill();
-         this.dropItem((Entity)null);
-      }
+        if (!blockpos.closerThan(this.blockPosition(), 16.0D))
+        {
+            LOGGER.error("Hanging entity at invalid position: {}", (Object)blockpos);
+        }
+        else
+        {
+            this.pos = blockpos;
+        }
+    }
 
-   }
+    public abstract int getWidth();
 
-   public void addAdditionalSaveData(CompoundTag p_31736_) {
-      BlockPos blockpos = this.getPos();
-      p_31736_.putInt("TileX", blockpos.getX());
-      p_31736_.putInt("TileY", blockpos.getY());
-      p_31736_.putInt("TileZ", blockpos.getZ());
-   }
+    public abstract int getHeight();
 
-   public void readAdditionalSaveData(CompoundTag p_31730_) {
-      BlockPos blockpos = new BlockPos(p_31730_.getInt("TileX"), p_31730_.getInt("TileY"), p_31730_.getInt("TileZ"));
-      if (!blockpos.closerThan(this.blockPosition(), 16.0D)) {
-         LOGGER.error("Hanging entity at invalid position: {}", (Object)blockpos);
-      } else {
-         this.pos = blockpos;
-      }
-   }
+    public abstract void dropItem(@Nullable Entity pBrokenEntity);
 
-   public abstract int getWidth();
+    public abstract void playPlacementSound();
 
-   public abstract int getHeight();
+    public ItemEntity spawnAtLocation(ItemStack pStack, float pOffsetY)
+    {
+        ItemEntity itementity = new ItemEntity(this.level, this.getX() + (double)((float)this.direction.getStepX() * 0.15F), this.getY() + (double)pOffsetY, this.getZ() + (double)((float)this.direction.getStepZ() * 0.15F), pStack);
+        itementity.setDefaultPickUpDelay();
+        this.level.addFreshEntity(itementity);
+        return itementity;
+    }
 
-   public abstract void dropItem(@Nullable Entity p_31717_);
+    protected boolean repositionEntityAfterLoad()
+    {
+        return false;
+    }
 
-   public abstract void playPlacementSound();
+    public void setPos(double pX, double p_31740_, double pY)
+    {
+        this.pos = new BlockPos(pX, p_31740_, pY);
+        this.recalculateBoundingBox();
+        this.hasImpulse = true;
+    }
 
-   public ItemEntity spawnAtLocation(ItemStack p_31722_, float p_31723_) {
-      ItemEntity itementity = new ItemEntity(this.level, this.getX() + (double)((float)this.direction.getStepX() * 0.15F), this.getY() + (double)p_31723_, this.getZ() + (double)((float)this.direction.getStepZ() * 0.15F), p_31722_);
-      itementity.setDefaultPickUpDelay();
-      this.level.addFreshEntity(itementity);
-      return itementity;
-   }
+    public BlockPos getPos()
+    {
+        return this.pos;
+    }
 
-   protected boolean repositionEntityAfterLoad() {
-      return false;
-   }
+    public float rotate(Rotation pTransformRotation)
+    {
+        if (this.direction.getAxis() != Direction.Axis.Y)
+        {
+            switch (pTransformRotation)
+            {
+                case CLOCKWISE_180:
+                    this.direction = this.direction.getOpposite();
+                    break;
 
-   public void setPos(double p_31739_, double p_31740_, double p_31741_) {
-      this.pos = new BlockPos(p_31739_, p_31740_, p_31741_);
-      this.recalculateBoundingBox();
-      this.hasImpulse = true;
-   }
+                case COUNTERCLOCKWISE_90:
+                    this.direction = this.direction.getCounterClockWise();
+                    break;
 
-   public BlockPos getPos() {
-      return this.pos;
-   }
+                case CLOCKWISE_90:
+                    this.direction = this.direction.getClockWise();
+            }
+        }
 
-   public float rotate(Rotation p_31727_) {
-      if (this.direction.getAxis() != Direction.Axis.Y) {
-         switch (p_31727_) {
+        float f = Mth.wrapDegrees(this.getYRot());
+
+        switch (pTransformRotation)
+        {
             case CLOCKWISE_180:
-               this.direction = this.direction.getOpposite();
-               break;
+                return f + 180.0F;
+
             case COUNTERCLOCKWISE_90:
-               this.direction = this.direction.getCounterClockWise();
-               break;
+                return f + 90.0F;
+
             case CLOCKWISE_90:
-               this.direction = this.direction.getClockWise();
-         }
-      }
+                return f + 270.0F;
 
-      float f = Mth.wrapDegrees(this.getYRot());
-      switch (p_31727_) {
-         case CLOCKWISE_180:
-            return f + 180.0F;
-         case COUNTERCLOCKWISE_90:
-            return f + 90.0F;
-         case CLOCKWISE_90:
-            return f + 270.0F;
-         default:
-            return f;
-      }
-   }
+            default:
+                return f;
+        }
+    }
 
-   public float mirror(Mirror p_31725_) {
-      return this.rotate(p_31725_.getRotation(this.direction));
-   }
+    public float mirror(Mirror pTransformMirror)
+    {
+        return this.rotate(pTransformMirror.getRotation(this.direction));
+    }
 
-   public void thunderHit(ServerLevel p_31712_, LightningBolt p_31713_) {
-   }
+    public void thunderHit(ServerLevel pLevel, LightningBolt pLightning)
+    {
+    }
 
-   public void refreshDimensions() {
-   }
+    public void refreshDimensions()
+    {
+    }
 }

@@ -5,10 +5,11 @@ import net.minecraft.core.BlockPos;
 import net.minecraft.core.Registry;
 import net.minecraft.util.RandomSource;
 
-public abstract class PosRuleTest {
-   public static final Codec<PosRuleTest> CODEC = Registry.POS_RULE_TEST.byNameCodec().dispatch("predicate_type", PosRuleTest::getType, PosRuleTestType::codec);
+public abstract class PosRuleTest
+{
+    public static final Codec<PosRuleTest> CODEC = Registry.POS_RULE_TEST.byNameCodec().dispatch("predicate_type", PosRuleTest::getType, PosRuleTestType::codec);
 
-   public abstract boolean test(BlockPos p_230305_, BlockPos p_230306_, BlockPos p_230307_, RandomSource p_230308_);
+    public abstract boolean test(BlockPos p_230305_, BlockPos p_230306_, BlockPos p_230307_, RandomSource p_230308_);
 
-   protected abstract PosRuleTestType<?> getType();
+    protected abstract PosRuleTestType<?> getType();
 }

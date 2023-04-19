@@ -18,97 +18,129 @@ import net.minecraft.world.entity.animal.FrogVariant;
 import net.minecraft.world.entity.animal.frog.Frog;
 import net.minecraft.world.phys.Vec3;
 
-public interface EntitySubPredicate {
-   EntitySubPredicate ANY = new EntitySubPredicate() {
-      public boolean matches(Entity p_218841_, ServerLevel p_218842_, @Nullable Vec3 p_218843_) {
-         return true;
-      }
+public interface EntitySubPredicate
+{
+    EntitySubPredicate ANY = new EntitySubPredicate()
+    {
+        public boolean matches(Entity p_218841_, ServerLevel p_218842_, @Nullable Vec3 p_218843_)
+        {
+            return true;
+        }
+        public JsonObject serializeCustomData()
+        {
+            return new JsonObject();
+        }
+        public EntitySubPredicate.Type type()
+        {
+            return EntitySubPredicate.Types.ANY;
+        }
+    };
 
-      public JsonObject serializeCustomData() {
-         return new JsonObject();
-      }
+    static EntitySubPredicate fromJson(@Nullable JsonElement p_218836_)
+    {
+        if (p_218836_ != null && !p_218836_.isJsonNull())
+        {
+            JsonObject jsonobject = GsonHelper.convertToJsonObject(p_218836_, "type_specific");
+            String s = GsonHelper.getAsString(jsonobject, "type", (String)null);
 
-      public EntitySubPredicate.Type type() {
-         return EntitySubPredicate.Types.ANY;
-      }
-   };
-
-   static EntitySubPredicate fromJson(@Nullable JsonElement p_218836_) {
-      if (p_218836_ != null && !p_218836_.isJsonNull()) {
-         JsonObject jsonobject = GsonHelper.convertToJsonObject(p_218836_, "type_specific");
-         String s = GsonHelper.getAsString(jsonobject, "type", (String)null);
-         if (s == null) {
-            return ANY;
-         } else {
-            EntitySubPredicate.Type entitysubpredicate$type = EntitySubPredicate.Types.TYPES.get(s);
-            if (entitysubpredicate$type == null) {
-               throw new JsonSyntaxException("Unknown sub-predicate type: " + s);
-            } else {
-               return entitysubpredicate$type.deserialize(jsonobject);
+            if (s == null)
+            {
+                return ANY;
             }
-         }
-      } else {
-         return ANY;
-      }
-   }
+            else
+            {
+                EntitySubPredicate.Type entitysubpredicate$type = EntitySubPredicate.Types.TYPES.get(s);
 
-   boolean matches(Entity p_218828_, ServerLevel p_218829_, @Nullable Vec3 p_218830_);
+                if (entitysubpredicate$type == null)
+                {
+                    throw new JsonSyntaxException("Unknown sub-predicate type: " + s);
+                }
+                else
+                {
+                    return entitysubpredicate$type.deserialize(jsonobject);
+                }
+            }
+        }
+        else
+        {
+            return ANY;
+        }
+    }
 
-   JsonObject serializeCustomData();
+    boolean matches(Entity p_218828_, ServerLevel p_218829_, @Nullable Vec3 p_218830_);
 
-   default JsonElement serialize() {
-      if (this.type() == EntitySubPredicate.Types.ANY) {
-         return JsonNull.INSTANCE;
-      } else {
-         JsonObject jsonobject = this.serializeCustomData();
-         String s = EntitySubPredicate.Types.TYPES.inverse().get(this.type());
-         jsonobject.addProperty("type", s);
-         return jsonobject;
-      }
-   }
+    JsonObject serializeCustomData();
 
-   EntitySubPredicate.Type type();
+default JsonElement serialize()
+    {
+        if (this.type() == EntitySubPredicate.Types.ANY)
+        {
+            return JsonNull.INSTANCE;
+        }
+        else
+        {
+            JsonObject jsonobject = this.serializeCustomData();
+            String s = EntitySubPredicate.Types.TYPES.inverse().get(this.type());
+            jsonobject.addProperty("type", s);
+            return jsonobject;
+        }
+    }
 
-   static EntitySubPredicate variant(CatVariant p_218832_) {
-      return EntitySubPredicate.Types.CAT.createPredicate(p_218832_);
-   }
+    EntitySubPredicate.Type type();
 
-   static EntitySubPredicate variant(FrogVariant p_218834_) {
-      return EntitySubPredicate.Types.FROG.createPredicate(p_218834_);
-   }
+    static EntitySubPredicate variant(CatVariant p_218832_)
+    {
+        return EntitySubPredicate.Types.CAT.createPredicate(p_218832_);
+    }
 
-   public interface Type {
-      EntitySubPredicate deserialize(JsonObject p_218846_);
-   }
+    static EntitySubPredicate variant(FrogVariant p_218834_)
+    {
+        return EntitySubPredicate.Types.FROG.createPredicate(p_218834_);
+    }
 
-   public static final class Types {
-      public static final EntitySubPredicate.Type ANY = (p_218860_) -> {
-         return EntitySubPredicate.ANY;
-      };
-      public static final EntitySubPredicate.Type LIGHTNING = LighthingBoltPredicate::fromJson;
-      public static final EntitySubPredicate.Type FISHING_HOOK = FishingHookPredicate::fromJson;
-      public static final EntitySubPredicate.Type PLAYER = PlayerPredicate::fromJson;
-      public static final EntitySubPredicate.Type SLIME = SlimePredicate::fromJson;
-      public static final EntityVariantPredicate<CatVariant> CAT = EntityVariantPredicate.create(Registry.CAT_VARIANT, (p_218862_) -> {
-         Optional optional;
-         if (p_218862_ instanceof Cat cat) {
-            optional = Optional.of(cat.getCatVariant());
-         } else {
-            optional = Optional.empty();
-         }
+    public interface Type
+    {
+        EntitySubPredicate deserialize(JsonObject p_218846_);
+    }
 
-         return optional;
-      });
-      public static final EntityVariantPredicate<FrogVariant> FROG = EntityVariantPredicate.create(Registry.FROG_VARIANT, (p_218858_) -> {
-         Optional optional;
-         if (p_218858_ instanceof Frog frog) {
-            optional = Optional.of(frog.getVariant());
-         } else {
-            optional = Optional.empty();
-         }
+    public static final class Types
+    {
+        public static final EntitySubPredicate.Type ANY = (p_218860_) ->
+        {
+            return EntitySubPredicate.ANY;
+        };
+        public static final EntitySubPredicate.Type LIGHTNING = LighthingBoltPredicate::fromJson;
+        public static final EntitySubPredicate.Type FISHING_HOOK = FishingHookPredicate::fromJson;
+        public static final EntitySubPredicate.Type PLAYER = PlayerPredicate::fromJson;
+        public static final EntitySubPredicate.Type SLIME = SlimePredicate::fromJson;
+        public static final EntityVariantPredicate<CatVariant> CAT = EntityVariantPredicate.create(Registry.CAT_VARIANT, (p_218862_) ->
+        {
+            Optional optional;
 
-         return optional;
-      });
-      public static final BiMap<String, EntitySubPredicate.Type> TYPES = ImmutableBiMap.of("any", ANY, "lightning", LIGHTNING, "fishing_hook", FISHING_HOOK, "player", PLAYER, "slime", SLIME, "cat", CAT.type(), "frog", FROG.type());
-   }
+            if (p_218862_ instanceof Cat cat)
+            {
+                optional = Optional.of(cat.getCatVariant());
+            }
+            else {
+                optional = Optional.empty();
+            }
+
+            return optional;
+        });
+        public static final EntityVariantPredicate<FrogVariant> FROG = EntityVariantPredicate.create(Registry.FROG_VARIANT, (p_218858_) ->
+        {
+            Optional optional;
+
+            if (p_218858_ instanceof Frog frog)
+            {
+                optional = Optional.of(frog.getVariant());
+            }
+            else {
+                optional = Optional.empty();
+            }
+
+            return optional;
+        });
+        public static final BiMap<String, EntitySubPredicate.Type> TYPES = ImmutableBiMap.of("any", ANY, "lightning", LIGHTNING, "fishing_hook", FISHING_HOOK, "player", PLAYER, "slime", SLIME, "cat", CAT.type(), "frog", FROG.type());
+    }
 }

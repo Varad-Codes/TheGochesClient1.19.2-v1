@@ -8,104 +8,140 @@ import net.minecraft.core.Direction;
 import net.minecraft.util.RandomSource;
 import net.minecraft.util.StringRepresentable;
 
-public enum Rotation implements StringRepresentable {
-   NONE("none", OctahedralGroup.IDENTITY),
-   CLOCKWISE_90("clockwise_90", OctahedralGroup.ROT_90_Y_NEG),
-   CLOCKWISE_180("180", OctahedralGroup.ROT_180_FACE_XZ),
-   COUNTERCLOCKWISE_90("counterclockwise_90", OctahedralGroup.ROT_90_Y_POS);
+public enum Rotation implements StringRepresentable
+{
+    NONE("none", OctahedralGroup.IDENTITY),
+    CLOCKWISE_90("clockwise_90", OctahedralGroup.ROT_90_Y_NEG),
+    CLOCKWISE_180("180", OctahedralGroup.ROT_180_FACE_XZ),
+    COUNTERCLOCKWISE_90("counterclockwise_90", OctahedralGroup.ROT_90_Y_POS);
 
-   public static final Codec<Rotation> CODEC = StringRepresentable.fromEnum(Rotation::values);
-   private final String id;
-   private final OctahedralGroup rotation;
+    public static final Codec<Rotation> CODEC = StringRepresentable.fromEnum(Rotation::values);
+    private final String id;
+    private final OctahedralGroup rotation;
 
-   private Rotation(String p_221988_, OctahedralGroup p_221989_) {
-      this.id = p_221988_;
-      this.rotation = p_221989_;
-   }
+    private Rotation(String p_221988_, OctahedralGroup p_221989_)
+    {
+        this.id = p_221988_;
+        this.rotation = p_221989_;
+    }
 
-   public Rotation getRotated(Rotation p_55953_) {
-      switch (p_55953_) {
-         case CLOCKWISE_180:
-            switch (this) {
-               case NONE:
-                  return CLOCKWISE_180;
-               case CLOCKWISE_90:
-                  return COUNTERCLOCKWISE_90;
-               case CLOCKWISE_180:
-                  return NONE;
-               case COUNTERCLOCKWISE_90:
-                  return CLOCKWISE_90;
-            }
-         case COUNTERCLOCKWISE_90:
-            switch (this) {
-               case NONE:
-                  return COUNTERCLOCKWISE_90;
-               case CLOCKWISE_90:
-                  return NONE;
-               case CLOCKWISE_180:
-                  return CLOCKWISE_90;
-               case COUNTERCLOCKWISE_90:
-                  return CLOCKWISE_180;
-            }
-         case CLOCKWISE_90:
-            switch (this) {
-               case NONE:
-                  return CLOCKWISE_90;
-               case CLOCKWISE_90:
-                  return CLOCKWISE_180;
-               case CLOCKWISE_180:
-                  return COUNTERCLOCKWISE_90;
-               case COUNTERCLOCKWISE_90:
-                  return NONE;
-            }
-         default:
-            return this;
-      }
-   }
-
-   public OctahedralGroup rotation() {
-      return this.rotation;
-   }
-
-   public Direction rotate(Direction p_55955_) {
-      if (p_55955_.getAxis() == Direction.Axis.Y) {
-         return p_55955_;
-      } else {
-         switch (this) {
-            case CLOCKWISE_90:
-               return p_55955_.getClockWise();
+    public Rotation getRotated(Rotation pRotation)
+    {
+        switch (pRotation)
+        {
             case CLOCKWISE_180:
-               return p_55955_.getOpposite();
+                switch (this)
+                {
+                    case NONE:
+                        return CLOCKWISE_180;
+
+                    case CLOCKWISE_90:
+                        return COUNTERCLOCKWISE_90;
+
+                    case CLOCKWISE_180:
+                        return NONE;
+
+                    case COUNTERCLOCKWISE_90:
+                        return CLOCKWISE_90;
+                }
+
             case COUNTERCLOCKWISE_90:
-               return p_55955_.getCounterClockWise();
+                switch (this)
+                {
+                    case NONE:
+                        return COUNTERCLOCKWISE_90;
+
+                    case CLOCKWISE_90:
+                        return NONE;
+
+                    case CLOCKWISE_180:
+                        return CLOCKWISE_90;
+
+                    case COUNTERCLOCKWISE_90:
+                        return CLOCKWISE_180;
+                }
+
+            case CLOCKWISE_90:
+                switch (this)
+                {
+                    case NONE:
+                        return CLOCKWISE_90;
+
+                    case CLOCKWISE_90:
+                        return CLOCKWISE_180;
+
+                    case CLOCKWISE_180:
+                        return COUNTERCLOCKWISE_90;
+
+                    case COUNTERCLOCKWISE_90:
+                        return NONE;
+                }
+
             default:
-               return p_55955_;
-         }
-      }
-   }
+                return this;
+        }
+    }
 
-   public int rotate(int p_55950_, int p_55951_) {
-      switch (this) {
-         case CLOCKWISE_90:
-            return (p_55950_ + p_55951_ / 4) % p_55951_;
-         case CLOCKWISE_180:
-            return (p_55950_ + p_55951_ / 2) % p_55951_;
-         case COUNTERCLOCKWISE_90:
-            return (p_55950_ + p_55951_ * 3 / 4) % p_55951_;
-         default:
-            return p_55950_;
-      }
-   }
+    public OctahedralGroup rotation()
+    {
+        return this.rotation;
+    }
 
-   public static Rotation getRandom(RandomSource p_221991_) {
-      return Util.getRandom(values(), p_221991_);
-   }
+    public Direction rotate(Direction pFacing)
+    {
+        if (pFacing.getAxis() == Direction.Axis.Y)
+        {
+            return pFacing;
+        }
+        else
+        {
+            switch (this)
+            {
+                case CLOCKWISE_90:
+                    return pFacing.getClockWise();
 
-   public static List<Rotation> getShuffled(RandomSource p_221993_) {
-      return Util.shuffledCopy(values(), p_221993_);
-   }
+                case CLOCKWISE_180:
+                    return pFacing.getOpposite();
 
-   public String getSerializedName() {
-      return this.id;
-   }
+                case COUNTERCLOCKWISE_90:
+                    return pFacing.getCounterClockWise();
+
+                default:
+                    return pFacing;
+            }
+        }
+    }
+
+    public int rotate(int pRotation, int pPositionCount)
+    {
+        switch (this)
+        {
+            case CLOCKWISE_90:
+                return (pRotation + pPositionCount / 4) % pPositionCount;
+
+            case CLOCKWISE_180:
+                return (pRotation + pPositionCount / 2) % pPositionCount;
+
+            case COUNTERCLOCKWISE_90:
+                return (pRotation + pPositionCount * 3 / 4) % pPositionCount;
+
+            default:
+                return pRotation;
+        }
+    }
+
+    public static Rotation getRandom(RandomSource pRandom)
+    {
+        return Util.a(values(), pRandom);
+    }
+
+    public static List<Rotation> getShuffled(RandomSource pRandom)
+    {
+        return Util.b(values(), pRandom);
+    }
+
+    public String getSerializedName()
+    {
+        return this.id;
+    }
 }

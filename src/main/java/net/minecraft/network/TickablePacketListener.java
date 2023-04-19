@@ -1,5 +1,6 @@
 package net.minecraft.network;
 
-public interface TickablePacketListener extends PacketListener {
-   void tick();
+public interface TickablePacketListener extends PacketListener
+{
+    void tick();
 }

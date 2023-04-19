@@ -5,47 +5,65 @@ import java.util.Optional;
 import net.minecraft.Util;
 import net.minecraft.util.RandomSource;
 
-public class WeightedRandom {
-   private WeightedRandom() {
-   }
+public class WeightedRandom
+{
+    private WeightedRandom()
+    {
+    }
 
-   public static int getTotalWeight(List<? extends WeightedEntry> p_146313_) {
-      long i = 0L;
+    public static int getTotalWeight(List <? extends WeightedEntry > pEntries)
+    {
+        long i = 0L;
 
-      for(WeightedEntry weightedentry : p_146313_) {
-         i += (long)weightedentry.getWeight().asInt();
-      }
+        for (WeightedEntry weightedentry : pEntries)
+        {
+            i += (long)weightedentry.getWeight().asInt();
+        }
 
-      if (i > 2147483647L) {
-         throw new IllegalArgumentException("Sum of weights must be <= 2147483647");
-      } else {
-         return (int)i;
-      }
-   }
+        if (i > 2147483647L)
+        {
+            throw new IllegalArgumentException("Sum of weights must be <= 2147483647");
+        }
+        else
+        {
+            return (int)i;
+        }
+    }
 
-   public static <T extends WeightedEntry> Optional<T> getRandomItem(RandomSource p_216826_, List<T> p_216827_, int p_216828_) {
-      if (p_216828_ < 0) {
-         throw (IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException("Negative total weight in getRandomItem"));
-      } else if (p_216828_ == 0) {
-         return Optional.empty();
-      } else {
-         int i = p_216826_.nextInt(p_216828_);
-         return getWeightedItem(p_216827_, i);
-      }
-   }
+    public static <T extends WeightedEntry> Optional<T> getRandomItem(RandomSource pRandom, List<T> pEntries, int pTotalWeight)
+    {
+        if (pTotalWeight < 0)
+        {
+            throw(IllegalArgumentException)Util.pauseInIde(new IllegalArgumentException("Negative total weight in getRandomItem"));
+        }
+        else if (pTotalWeight == 0)
+        {
+            return Optional.empty();
+        }
+        else
+        {
+            int i = pRandom.nextInt(pTotalWeight);
+            return getWeightedItem(pEntries, i);
+        }
+    }
 
-   public static <T extends WeightedEntry> Optional<T> getWeightedItem(List<T> p_146315_, int p_146316_) {
-      for(T t : p_146315_) {
-         p_146316_ -= t.getWeight().asInt();
-         if (p_146316_ < 0) {
-            return Optional.of(t);
-         }
-      }
+    public static <T extends WeightedEntry> Optional<T> getWeightedItem(List<T> pEntries, int pWeightedIndex)
+    {
+        for (T t : pEntries)
+        {
+            pWeightedIndex -= t.getWeight().asInt();
 
-      return Optional.empty();
-   }
+            if (pWeightedIndex < 0)
+            {
+                return Optional.of(t);
+            }
+        }
 
-   public static <T extends WeightedEntry> Optional<T> getRandomItem(RandomSource p_216823_, List<T> p_216824_) {
-      return getRandomItem(p_216823_, p_216824_, getTotalWeight(p_216824_));
-   }
+        return Optional.empty();
+    }
+
+    public static <T extends WeightedEntry> Optional<T> getRandomItem(RandomSource pRandom, List<T> pEntries)
+    {
+        return getRandomItem(pRandom, pEntries, getTotalWeight(pEntries));
+    }
 }

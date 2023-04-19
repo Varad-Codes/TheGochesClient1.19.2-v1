@@ -6,10 +6,11 @@ import net.minecraft.core.Registry;
 import net.minecraft.world.level.Level;
 import net.minecraft.world.phys.Vec3;
 
-public interface PositionSource {
-   Codec<PositionSource> CODEC = Registry.POSITION_SOURCE_TYPE.byNameCodec().dispatch(PositionSource::getType, PositionSourceType::codec);
+public interface PositionSource
+{
+    Codec<PositionSource> CODEC = Registry.POSITION_SOURCE_TYPE.byNameCodec().dispatch(PositionSource::getType, PositionSourceType::codec);
 
-   Optional<Vec3> getPosition(Level p_157870_);
+    Optional<Vec3> getPosition(Level pLevel);
 
-   PositionSourceType<?> getType();
+    PositionSourceType<?> getType();
 }

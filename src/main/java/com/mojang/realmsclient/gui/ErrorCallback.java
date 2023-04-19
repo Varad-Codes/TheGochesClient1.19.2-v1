@@ -1,14 +1,13 @@
 package com.mojang.realmsclient.gui;
 
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
-public interface ErrorCallback {
-   void error(Component p_87793_);
+public interface ErrorCallback
+{
+    void error(Component pError);
 
-   default void error(String p_87792_) {
-      this.error(Component.literal(p_87792_));
-   }
+default void error(String pError)
+    {
+        this.error(Component.literal(pError));
+    }
 }

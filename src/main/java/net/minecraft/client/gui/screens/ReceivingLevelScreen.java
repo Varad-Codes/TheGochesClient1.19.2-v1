@@ -4,52 +4,71 @@ import com.mojang.blaze3d.vertex.PoseStack;
 import net.minecraft.client.GameNarrator;
 import net.minecraft.core.BlockPos;
 import net.minecraft.network.chat.Component;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.optifine.CustomLoadingScreen;
+import net.optifine.CustomLoadingScreens;
 
-@OnlyIn(Dist.CLIENT)
-public class ReceivingLevelScreen extends Screen {
-   private static final Component DOWNLOADING_TERRAIN_TEXT = Component.translatable("multiplayer.downloadingTerrain");
-   private static final long CHUNK_LOADING_START_WAIT_LIMIT_MS = 2000L;
-   private boolean loadingPacketsReceived = false;
-   private boolean oneTickSkipped = false;
-   private final long createdAt = System.currentTimeMillis();
+public class ReceivingLevelScreen extends Screen
+{
+    private static final Component DOWNLOADING_TERRAIN_TEXT = Component.translatable("multiplayer.downloadingTerrain");
+    private static final long CHUNK_LOADING_START_WAIT_LIMIT_MS = 2000L;
+    private boolean loadingPacketsReceived = false;
+    private boolean oneTickSkipped = false;
+    private final long createdAt = System.currentTimeMillis();
+    private CustomLoadingScreen customLoadingScreen = CustomLoadingScreens.getCustomLoadingScreen();
 
-   public ReceivingLevelScreen() {
-      super(GameNarrator.NO_TITLE);
-   }
+    public ReceivingLevelScreen()
+    {
+        super(GameNarrator.NO_TITLE);
+    }
 
-   public boolean shouldCloseOnEsc() {
-      return false;
-   }
+    public boolean shouldCloseOnEsc()
+    {
+        return false;
+    }
 
-   public void render(PoseStack p_96530_, int p_96531_, int p_96532_, float p_96533_) {
-      this.renderDirtBackground(0);
-      drawCenteredString(p_96530_, this.font, DOWNLOADING_TERRAIN_TEXT, this.width / 2, this.height / 2 - 50, 16777215);
-      super.render(p_96530_, p_96531_, p_96532_, p_96533_);
-   }
+    public void render(PoseStack pPoseStack, int pMouseX, int pMouseY, float pPartialTick)
+    {
+        if (this.customLoadingScreen != null)
+        {
+            this.customLoadingScreen.drawBackground(this.width, this.height);
+        }
+        else
+        {
+            this.renderDirtBackground(0);
+        }
 
-   public void tick() {
-      boolean flag = this.oneTickSkipped || System.currentTimeMillis() > this.createdAt + 2000L;
-      if (flag && this.minecraft != null && this.minecraft.player != null) {
-         BlockPos blockpos = this.minecraft.player.blockPosition();
-         boolean flag1 = this.minecraft.level != null && this.minecraft.level.isOutsideBuildHeight(blockpos.getY());
-         if (flag1 || this.minecraft.levelRenderer.isChunkCompiled(blockpos)) {
-            this.onClose();
-         }
+        drawCenteredString(pPoseStack, this.font, DOWNLOADING_TERRAIN_TEXT, this.width / 2, this.height / 2 - 50, 16777215);
+        super.render(pPoseStack, pMouseX, pMouseY, pPartialTick);
+    }
 
-         if (this.loadingPacketsReceived) {
-            this.oneTickSkipped = true;
-         }
+    public void tick()
+    {
+        boolean flag = this.oneTickSkipped || System.currentTimeMillis() > this.createdAt + 2000L;
 
-      }
-   }
+        if (flag && this.minecraft != null && this.minecraft.player != null)
+        {
+            BlockPos blockpos = this.minecraft.player.blockPosition();
+            boolean flag1 = this.minecraft.level != null && this.minecraft.level.isOutsideBuildHeight(blockpos.getY());
 
-   public void loadingPacketsReceived() {
-      this.loadingPacketsReceived = true;
-   }
+            if (flag1 || this.minecraft.levelRenderer.isChunkCompiled(blockpos))
+            {
+                this.onClose();
+            }
 
-   public boolean isPauseScreen() {
-      return false;
-   }
+            if (this.loadingPacketsReceived)
+            {
+                this.oneTickSkipped = true;
+            }
+        }
+    }
+
+    public void loadingPacketsReceived()
+    {
+        this.loadingPacketsReceived = true;
+    }
+
+    public boolean isPauseScreen()
+    {
+        return false;
+    }
 }

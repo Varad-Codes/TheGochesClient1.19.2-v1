@@ -65,813 +65,1065 @@ import net.minecraft.world.level.storage.WritableLevelData;
 import net.minecraft.world.phys.AABB;
 import net.minecraft.world.scores.Scoreboard;
 
-public abstract class Level implements LevelAccessor, AutoCloseable {
-   public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registry.DIMENSION_REGISTRY);
-   public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("overworld"));
-   public static final ResourceKey<Level> NETHER = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("the_nether"));
-   public static final ResourceKey<Level> END = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("the_end"));
-   public static final int MAX_LEVEL_SIZE = 30000000;
-   public static final int LONG_PARTICLE_CLIP_RANGE = 512;
-   public static final int SHORT_PARTICLE_CLIP_RANGE = 32;
-   private static final Direction[] DIRECTIONS = Direction.values();
-   public static final int MAX_BRIGHTNESS = 15;
-   public static final int TICKS_PER_DAY = 24000;
-   public static final int MAX_ENTITY_SPAWN_Y = 20000000;
-   public static final int MIN_ENTITY_SPAWN_Y = -20000000;
-   protected final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
-   protected final NeighborUpdater neighborUpdater;
-   private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
-   private boolean tickingBlockEntities;
-   private final Thread thread;
-   private final boolean isDebug;
-   private int skyDarken;
-   protected int randValue = RandomSource.create().nextInt();
-   protected final int addend = 1013904223;
-   protected float oRainLevel;
-   protected float rainLevel;
-   protected float oThunderLevel;
-   protected float thunderLevel;
-   public final RandomSource random = RandomSource.create();
-   /** @deprecated */
-   @Deprecated
-   private final RandomSource threadSafeRandom = RandomSource.createThreadSafe();
-   private final ResourceKey<DimensionType> dimensionTypeId;
-   private final Holder<DimensionType> dimensionTypeRegistration;
-   protected final WritableLevelData levelData;
-   private final Supplier<ProfilerFiller> profiler;
-   public final boolean isClientSide;
-   private final WorldBorder worldBorder;
-   private final BiomeManager biomeManager;
-   private final ResourceKey<Level> dimension;
-   private long subTickCount;
+public abstract class Level implements LevelAccessor, AutoCloseable
+{
+    public static final Codec<ResourceKey<Level>> RESOURCE_KEY_CODEC = ResourceKey.codec(Registry.DIMENSION_REGISTRY);
+    public static final ResourceKey<Level> OVERWORLD = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("overworld"));
+    public static final ResourceKey<Level> NETHER = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("the_nether"));
+    public static final ResourceKey<Level> END = ResourceKey.create(Registry.DIMENSION_REGISTRY, new ResourceLocation("the_end"));
+    public static final int MAX_LEVEL_SIZE = 30000000;
+    public static final int LONG_PARTICLE_CLIP_RANGE = 512;
+    public static final int SHORT_PARTICLE_CLIP_RANGE = 32;
+    private static final Direction[] DIRECTIONS = Direction.values();
+    public static final int MAX_BRIGHTNESS = 15;
+    public static final int TICKS_PER_DAY = 24000;
+    public static final int MAX_ENTITY_SPAWN_Y = 20000000;
+    public static final int MIN_ENTITY_SPAWN_Y = -20000000;
+    protected final List<TickingBlockEntity> blockEntityTickers = Lists.newArrayList();
+    protected final NeighborUpdater neighborUpdater;
+    private final List<TickingBlockEntity> pendingBlockEntityTickers = Lists.newArrayList();
+    private boolean tickingBlockEntities;
+    private final Thread thread;
+    private final boolean isDebug;
+    private int skyDarken;
+    protected int randValue = RandomSource.create().nextInt();
+    protected final int addend = 1013904223;
+    protected float oRainLevel;
+    protected float rainLevel;
+    protected float oThunderLevel;
+    protected float thunderLevel;
+    public final RandomSource random = RandomSource.create();
 
-   protected Level(WritableLevelData p_220352_, ResourceKey<Level> p_220353_, Holder<DimensionType> p_220354_, Supplier<ProfilerFiller> p_220355_, boolean p_220356_, boolean p_220357_, long p_220358_, int p_220359_) {
-      this.profiler = p_220355_;
-      this.levelData = p_220352_;
-      this.dimensionTypeRegistration = p_220354_;
-      this.dimensionTypeId = p_220354_.unwrapKey().orElseThrow(() -> {
-         return new IllegalArgumentException("Dimension must be registered, got " + p_220354_);
-      });
-      final DimensionType dimensiontype = p_220354_.value();
-      this.dimension = p_220353_;
-      this.isClientSide = p_220356_;
-      if (dimensiontype.coordinateScale() != 1.0D) {
-         this.worldBorder = new WorldBorder() {
-            public double getCenterX() {
-               return super.getCenterX() / dimensiontype.coordinateScale();
-            }
+    @Deprecated
+    private final RandomSource threadSafeRandom = RandomSource.createThreadSafe();
+    private final ResourceKey<DimensionType> dimensionTypeId;
+    private final Holder<DimensionType> dimensionTypeRegistration;
+    protected final WritableLevelData levelData;
+    private final Supplier<ProfilerFiller> profiler;
+    public final boolean isClientSide;
+    private final WorldBorder worldBorder;
+    private final BiomeManager biomeManager;
+    private final ResourceKey<Level> dimension;
+    private long subTickCount;
 
-            public double getCenterZ() {
-               return super.getCenterZ() / dimensiontype.coordinateScale();
-            }
-         };
-      } else {
-         this.worldBorder = new WorldBorder();
-      }
+    protected Level(WritableLevelData p_220352_, ResourceKey<Level> p_220353_, Holder<DimensionType> p_220354_, Supplier<ProfilerFiller> p_220355_, boolean p_220356_, boolean p_220357_, long p_220358_, int p_220359_)
+    {
+        this.profiler = p_220355_;
+        this.levelData = p_220352_;
+        this.dimensionTypeRegistration = p_220354_;
+        this.dimensionTypeId = (ResourceKey)p_220354_.unwrapKey().orElseThrow(() ->
+        {
+            return new IllegalArgumentException("Dimension must be registered, got " + p_220354_);
+        });
+        final DimensionType dimensiontype = (DimensionType)p_220354_.value();
+        this.dimension = p_220353_;
+        this.isClientSide = p_220356_;
 
-      this.thread = Thread.currentThread();
-      this.biomeManager = new BiomeManager(this, p_220358_);
-      this.isDebug = p_220357_;
-      this.neighborUpdater = new CollectingNeighborUpdater(this, p_220359_);
-   }
+        if (dimensiontype.coordinateScale() != 1.0D)
+        {
+            this.worldBorder = new WorldBorder()
+            {
+                public double getCenterX()
+                {
+                    return super.getCenterX() / dimensiontype.coordinateScale();
+                }
+                public double getCenterZ()
+                {
+                    return super.getCenterZ() / dimensiontype.coordinateScale();
+                }
+            };
+        }
+        else
+        {
+            this.worldBorder = new WorldBorder();
+        }
 
-   public boolean isClientSide() {
-      return this.isClientSide;
-   }
+        this.thread = Thread.currentThread();
+        this.biomeManager = new BiomeManager(this, p_220358_);
+        this.isDebug = p_220357_;
+        this.neighborUpdater = new CollectingNeighborUpdater(this, p_220359_);
+    }
 
-   @Nullable
-   public MinecraftServer getServer() {
-      return null;
-   }
+    public boolean isClientSide()
+    {
+        return this.isClientSide;
+    }
 
-   public boolean isInWorldBounds(BlockPos p_46740_) {
-      return !this.isOutsideBuildHeight(p_46740_) && isInWorldBoundsHorizontal(p_46740_);
-   }
+    @Nullable
+    public MinecraftServer getServer()
+    {
+        return null;
+    }
 
-   public static boolean isInSpawnableBounds(BlockPos p_46742_) {
-      return !isOutsideSpawnableHeight(p_46742_.getY()) && isInWorldBoundsHorizontal(p_46742_);
-   }
+    public boolean isInWorldBounds(BlockPos pPos)
+    {
+        return !this.isOutsideBuildHeight(pPos) && isInWorldBoundsHorizontal(pPos);
+    }
 
-   private static boolean isInWorldBoundsHorizontal(BlockPos p_46458_) {
-      return p_46458_.getX() >= -30000000 && p_46458_.getZ() >= -30000000 && p_46458_.getX() < 30000000 && p_46458_.getZ() < 30000000;
-   }
+    public static boolean isInSpawnableBounds(BlockPos pPos)
+    {
+        return !isOutsideSpawnableHeight(pPos.getY()) && isInWorldBoundsHorizontal(pPos);
+    }
 
-   private static boolean isOutsideSpawnableHeight(int p_46725_) {
-      return p_46725_ < -20000000 || p_46725_ >= 20000000;
-   }
+    private static boolean isInWorldBoundsHorizontal(BlockPos pPos)
+    {
+        return pPos.getX() >= -30000000 && pPos.getZ() >= -30000000 && pPos.getX() < 30000000 && pPos.getZ() < 30000000;
+    }
 
-   public LevelChunk getChunkAt(BlockPos p_46746_) {
-      return this.getChunk(SectionPos.blockToSectionCoord(p_46746_.getX()), SectionPos.blockToSectionCoord(p_46746_.getZ()));
-   }
+    private static boolean isOutsideSpawnableHeight(int pY)
+    {
+        return pY < -20000000 || pY >= 20000000;
+    }
 
-   public LevelChunk getChunk(int p_46727_, int p_46728_) {
-      return (LevelChunk)this.getChunk(p_46727_, p_46728_, ChunkStatus.FULL);
-   }
+    public LevelChunk getChunkAt(BlockPos pPos)
+    {
+        return this.getChunk(SectionPos.blockToSectionCoord(pPos.getX()), SectionPos.blockToSectionCoord(pPos.getZ()));
+    }
 
-   @Nullable
-   public ChunkAccess getChunk(int p_46502_, int p_46503_, ChunkStatus p_46504_, boolean p_46505_) {
-      ChunkAccess chunkaccess = this.getChunkSource().getChunk(p_46502_, p_46503_, p_46504_, p_46505_);
-      if (chunkaccess == null && p_46505_) {
-         throw new IllegalStateException("Should always be able to create a chunk!");
-      } else {
-         return chunkaccess;
-      }
-   }
+    public LevelChunk getChunk(int pChunkX, int pChunkZ)
+    {
+        return (LevelChunk)this.getChunk(pChunkX, pChunkZ, ChunkStatus.FULL);
+    }
 
-   public boolean setBlock(BlockPos p_46601_, BlockState p_46602_, int p_46603_) {
-      return this.setBlock(p_46601_, p_46602_, p_46603_, 512);
-   }
+    @Nullable
+    public ChunkAccess getChunk(int pX, int pZ, ChunkStatus pRequiredStatus, boolean pNonnull)
+    {
+        ChunkAccess chunkaccess = this.getChunkSource().getChunk(pX, pZ, pRequiredStatus, pNonnull);
 
-   public boolean setBlock(BlockPos p_46605_, BlockState p_46606_, int p_46607_, int p_46608_) {
-      if (this.isOutsideBuildHeight(p_46605_)) {
-         return false;
-      } else if (!this.isClientSide && this.isDebug()) {
-         return false;
-      } else {
-         LevelChunk levelchunk = this.getChunkAt(p_46605_);
-         Block block = p_46606_.getBlock();
-         BlockState blockstate = levelchunk.setBlockState(p_46605_, p_46606_, (p_46607_ & 64) != 0);
-         if (blockstate == null) {
+        if (chunkaccess == null && pNonnull)
+        {
+            throw new IllegalStateException("Should always be able to create a chunk!");
+        }
+        else
+        {
+            return chunkaccess;
+        }
+    }
+
+    public boolean setBlock(BlockPos pPos, BlockState pNewState, int pFlags)
+    {
+        return this.setBlock(pPos, pNewState, pFlags, 512);
+    }
+
+    public boolean setBlock(BlockPos pPos, BlockState pState, int pFlags, int pRecursionLeft)
+    {
+        if (this.isOutsideBuildHeight(pPos))
+        {
             return false;
-         } else {
-            BlockState blockstate1 = this.getBlockState(p_46605_);
-            if ((p_46607_ & 128) == 0 && blockstate1 != blockstate && (blockstate1.getLightBlock(this, p_46605_) != blockstate.getLightBlock(this, p_46605_) || blockstate1.getLightEmission() != blockstate.getLightEmission() || blockstate1.useShapeForLightOcclusion() || blockstate.useShapeForLightOcclusion())) {
-               this.getProfiler().push("queueCheckLight");
-               this.getChunkSource().getLightEngine().checkBlock(p_46605_);
-               this.getProfiler().pop();
+        }
+        else if (!this.isClientSide && this.isDebug())
+        {
+            return false;
+        }
+        else
+        {
+            LevelChunk levelchunk = this.getChunkAt(pPos);
+            Block block = pState.getBlock();
+            BlockState blockstate = levelchunk.setBlockState(pPos, pState, (pFlags & 64) != 0);
+
+            if (blockstate == null)
+            {
+                return false;
+            }
+            else
+            {
+                BlockState blockstate1 = this.getBlockState(pPos);
+
+                if ((pFlags & 128) == 0 && blockstate1 != blockstate && (blockstate1.getLightBlock(this, pPos) != blockstate.getLightBlock(this, pPos) || blockstate1.getLightEmission() != blockstate.getLightEmission() || blockstate1.useShapeForLightOcclusion() || blockstate.useShapeForLightOcclusion()))
+                {
+                    this.getProfiler().push("queueCheckLight");
+                    this.getChunkSource().getLightEngine().checkBlock(pPos);
+                    this.getProfiler().pop();
+                }
+
+                if (blockstate1 == pState)
+                {
+                    if (blockstate != blockstate1)
+                    {
+                        this.setBlocksDirty(pPos, blockstate, blockstate1);
+                    }
+
+                    if ((pFlags & 2) != 0 && (!this.isClientSide || (pFlags & 4) == 0) && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(ChunkHolder.FullChunkStatus.TICKING)))
+                    {
+                        this.sendBlockUpdated(pPos, blockstate, pState, pFlags);
+                    }
+
+                    if ((pFlags & 1) != 0)
+                    {
+                        this.blockUpdated(pPos, blockstate.getBlock());
+
+                        if (!this.isClientSide && pState.hasAnalogOutputSignal())
+                        {
+                            this.updateNeighbourForOutputSignal(pPos, block);
+                        }
+                    }
+
+                    if ((pFlags & 16) == 0 && pRecursionLeft > 0)
+                    {
+                        int i = pFlags & -34;
+                        blockstate.updateIndirectNeighbourShapes(this, pPos, i, pRecursionLeft - 1);
+                        pState.updateNeighbourShapes(this, pPos, i, pRecursionLeft - 1);
+                        pState.updateIndirectNeighbourShapes(this, pPos, i, pRecursionLeft - 1);
+                    }
+
+                    this.onBlockStateChange(pPos, blockstate, blockstate1);
+                }
+
+                return true;
+            }
+        }
+    }
+
+    public void onBlockStateChange(BlockPos pPos, BlockState pBlockState, BlockState pNewState)
+    {
+    }
+
+    public boolean removeBlock(BlockPos pPos, boolean pIsMoving)
+    {
+        FluidState fluidstate = this.getFluidState(pPos);
+        return this.setBlock(pPos, fluidstate.createLegacyBlock(), 3 | (pIsMoving ? 64 : 0));
+    }
+
+    public boolean destroyBlock(BlockPos pPos, boolean pDropBlock, @Nullable Entity pEntity, int pRecursionLeft)
+    {
+        BlockState blockstate = this.getBlockState(pPos);
+
+        if (blockstate.isAir())
+        {
+            return false;
+        }
+        else
+        {
+            FluidState fluidstate = this.getFluidState(pPos);
+
+            if (!(blockstate.getBlock() instanceof BaseFireBlock))
+            {
+                this.levelEvent(2001, pPos, Block.getId(blockstate));
             }
 
-            if (blockstate1 == p_46606_) {
-               if (blockstate != blockstate1) {
-                  this.setBlocksDirty(p_46605_, blockstate, blockstate1);
-               }
-
-               if ((p_46607_ & 2) != 0 && (!this.isClientSide || (p_46607_ & 4) == 0) && (this.isClientSide || levelchunk.getFullStatus() != null && levelchunk.getFullStatus().isOrAfter(ChunkHolder.FullChunkStatus.TICKING))) {
-                  this.sendBlockUpdated(p_46605_, blockstate, p_46606_, p_46607_);
-               }
-
-               if ((p_46607_ & 1) != 0) {
-                  this.blockUpdated(p_46605_, blockstate.getBlock());
-                  if (!this.isClientSide && p_46606_.hasAnalogOutputSignal()) {
-                     this.updateNeighbourForOutputSignal(p_46605_, block);
-                  }
-               }
-
-               if ((p_46607_ & 16) == 0 && p_46608_ > 0) {
-                  int i = p_46607_ & -34;
-                  blockstate.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
-                  p_46606_.updateNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
-                  p_46606_.updateIndirectNeighbourShapes(this, p_46605_, i, p_46608_ - 1);
-               }
-
-               this.onBlockStateChange(p_46605_, blockstate, blockstate1);
+            if (pDropBlock)
+            {
+                BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(pPos) : null;
+                Block.dropResources(blockstate, this, pPos, blockentity, pEntity, ItemStack.EMPTY);
             }
 
-            return true;
-         }
-      }
-   }
+            boolean flag = this.setBlock(pPos, fluidstate.createLegacyBlock(), 3, pRecursionLeft);
 
-   public void onBlockStateChange(BlockPos p_46609_, BlockState p_46610_, BlockState p_46611_) {
-   }
-
-   public boolean removeBlock(BlockPos p_46623_, boolean p_46624_) {
-      FluidState fluidstate = this.getFluidState(p_46623_);
-      return this.setBlock(p_46623_, fluidstate.createLegacyBlock(), 3 | (p_46624_ ? 64 : 0));
-   }
-
-   public boolean destroyBlock(BlockPos p_46626_, boolean p_46627_, @Nullable Entity p_46628_, int p_46629_) {
-      BlockState blockstate = this.getBlockState(p_46626_);
-      if (blockstate.isAir()) {
-         return false;
-      } else {
-         FluidState fluidstate = this.getFluidState(p_46626_);
-         if (!(blockstate.getBlock() instanceof BaseFireBlock)) {
-            this.levelEvent(2001, p_46626_, Block.getId(blockstate));
-         }
-
-         if (p_46627_) {
-            BlockEntity blockentity = blockstate.hasBlockEntity() ? this.getBlockEntity(p_46626_) : null;
-            Block.dropResources(blockstate, this, p_46626_, blockentity, p_46628_, ItemStack.EMPTY);
-         }
-
-         boolean flag = this.setBlock(p_46626_, fluidstate.createLegacyBlock(), 3, p_46629_);
-         if (flag) {
-            this.gameEvent(GameEvent.BLOCK_DESTROY, p_46626_, GameEvent.Context.of(p_46628_, blockstate));
-         }
-
-         return flag;
-      }
-   }
-
-   public void addDestroyBlockEffect(BlockPos p_151531_, BlockState p_151532_) {
-   }
-
-   public boolean setBlockAndUpdate(BlockPos p_46598_, BlockState p_46599_) {
-      return this.setBlock(p_46598_, p_46599_, 3);
-   }
-
-   public abstract void sendBlockUpdated(BlockPos p_46612_, BlockState p_46613_, BlockState p_46614_, int p_46615_);
-
-   public void setBlocksDirty(BlockPos p_46678_, BlockState p_46679_, BlockState p_46680_) {
-   }
-
-   public void updateNeighborsAt(BlockPos p_46673_, Block p_46674_) {
-   }
-
-   public void updateNeighborsAtExceptFromFacing(BlockPos p_46591_, Block p_46592_, Direction p_46593_) {
-   }
-
-   public void neighborChanged(BlockPos p_46587_, Block p_46588_, BlockPos p_46589_) {
-   }
-
-   public void neighborChanged(BlockState p_220379_, BlockPos p_220380_, Block p_220381_, BlockPos p_220382_, boolean p_220383_) {
-   }
-
-   public void neighborShapeChanged(Direction p_220385_, BlockState p_220386_, BlockPos p_220387_, BlockPos p_220388_, int p_220389_, int p_220390_) {
-      this.neighborUpdater.shapeUpdate(p_220385_, p_220386_, p_220387_, p_220388_, p_220389_, p_220390_);
-   }
-
-   public int getHeight(Heightmap.Types p_46571_, int p_46572_, int p_46573_) {
-      int i;
-      if (p_46572_ >= -30000000 && p_46573_ >= -30000000 && p_46572_ < 30000000 && p_46573_ < 30000000) {
-         if (this.hasChunk(SectionPos.blockToSectionCoord(p_46572_), SectionPos.blockToSectionCoord(p_46573_))) {
-            i = this.getChunk(SectionPos.blockToSectionCoord(p_46572_), SectionPos.blockToSectionCoord(p_46573_)).getHeight(p_46571_, p_46572_ & 15, p_46573_ & 15) + 1;
-         } else {
-            i = this.getMinBuildHeight();
-         }
-      } else {
-         i = this.getSeaLevel() + 1;
-      }
-
-      return i;
-   }
-
-   public LevelLightEngine getLightEngine() {
-      return this.getChunkSource().getLightEngine();
-   }
-
-   public BlockState getBlockState(BlockPos p_46732_) {
-      if (this.isOutsideBuildHeight(p_46732_)) {
-         return Blocks.VOID_AIR.defaultBlockState();
-      } else {
-         LevelChunk levelchunk = this.getChunk(SectionPos.blockToSectionCoord(p_46732_.getX()), SectionPos.blockToSectionCoord(p_46732_.getZ()));
-         return levelchunk.getBlockState(p_46732_);
-      }
-   }
-
-   public FluidState getFluidState(BlockPos p_46671_) {
-      if (this.isOutsideBuildHeight(p_46671_)) {
-         return Fluids.EMPTY.defaultFluidState();
-      } else {
-         LevelChunk levelchunk = this.getChunkAt(p_46671_);
-         return levelchunk.getFluidState(p_46671_);
-      }
-   }
-
-   public boolean isDay() {
-      return !this.dimensionType().hasFixedTime() && this.skyDarken < 4;
-   }
-
-   public boolean isNight() {
-      return !this.dimensionType().hasFixedTime() && !this.isDay();
-   }
-
-   public void playSound(@Nullable Player p_46560_, BlockPos p_46561_, SoundEvent p_46562_, SoundSource p_46563_, float p_46564_, float p_46565_) {
-      this.playSound(p_46560_, (double)p_46561_.getX() + 0.5D, (double)p_46561_.getY() + 0.5D, (double)p_46561_.getZ() + 0.5D, p_46562_, p_46563_, p_46564_, p_46565_);
-   }
-
-   public abstract void playSeededSound(@Nullable Player p_220363_, double p_220364_, double p_220365_, double p_220366_, SoundEvent p_220367_, SoundSource p_220368_, float p_220369_, float p_220370_, long p_220371_);
-
-   public abstract void playSeededSound(@Nullable Player p_220372_, Entity p_220373_, SoundEvent p_220374_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_);
-
-   public void playSound(@Nullable Player p_46543_, double p_46544_, double p_46545_, double p_46546_, SoundEvent p_46547_, SoundSource p_46548_, float p_46549_, float p_46550_) {
-      this.playSeededSound(p_46543_, p_46544_, p_46545_, p_46546_, p_46547_, p_46548_, p_46549_, p_46550_, this.threadSafeRandom.nextLong());
-   }
-
-   public void playSound(@Nullable Player p_46551_, Entity p_46552_, SoundEvent p_46553_, SoundSource p_46554_, float p_46555_, float p_46556_) {
-      this.playSeededSound(p_46551_, p_46552_, p_46553_, p_46554_, p_46555_, p_46556_, this.threadSafeRandom.nextLong());
-   }
-
-   public void playLocalSound(double p_46482_, double p_46483_, double p_46484_, SoundEvent p_46485_, SoundSource p_46486_, float p_46487_, float p_46488_, boolean p_46489_) {
-   }
-
-   public void addParticle(ParticleOptions p_46631_, double p_46632_, double p_46633_, double p_46634_, double p_46635_, double p_46636_, double p_46637_) {
-   }
-
-   public void addParticle(ParticleOptions p_46638_, boolean p_46639_, double p_46640_, double p_46641_, double p_46642_, double p_46643_, double p_46644_, double p_46645_) {
-   }
-
-   public void addAlwaysVisibleParticle(ParticleOptions p_46684_, double p_46685_, double p_46686_, double p_46687_, double p_46688_, double p_46689_, double p_46690_) {
-   }
-
-   public void addAlwaysVisibleParticle(ParticleOptions p_46691_, boolean p_46692_, double p_46693_, double p_46694_, double p_46695_, double p_46696_, double p_46697_, double p_46698_) {
-   }
-
-   public float getSunAngle(float p_46491_) {
-      float f = this.getTimeOfDay(p_46491_);
-      return f * ((float)Math.PI * 2F);
-   }
-
-   public void addBlockEntityTicker(TickingBlockEntity p_151526_) {
-      (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(p_151526_);
-   }
-
-   protected void tickBlockEntities() {
-      ProfilerFiller profilerfiller = this.getProfiler();
-      profilerfiller.push("blockEntities");
-      this.tickingBlockEntities = true;
-      if (!this.pendingBlockEntityTickers.isEmpty()) {
-         this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
-         this.pendingBlockEntityTickers.clear();
-      }
-
-      Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
-
-      while(iterator.hasNext()) {
-         TickingBlockEntity tickingblockentity = iterator.next();
-         if (tickingblockentity.isRemoved()) {
-            iterator.remove();
-         } else if (this.shouldTickBlocksAt(tickingblockentity.getPos())) {
-            tickingblockentity.tick();
-         }
-      }
-
-      this.tickingBlockEntities = false;
-      profilerfiller.pop();
-   }
-
-   public <T extends Entity> void guardEntityTick(Consumer<T> p_46654_, T p_46655_) {
-      try {
-         p_46654_.accept(p_46655_);
-      } catch (Throwable throwable) {
-         CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking entity");
-         CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being ticked");
-         p_46655_.fillCrashReportCategory(crashreportcategory);
-         throw new ReportedException(crashreport);
-      }
-   }
-
-   public boolean shouldTickDeath(Entity p_186458_) {
-      return true;
-   }
-
-   public boolean shouldTickBlocksAt(long p_186456_) {
-      return true;
-   }
-
-   public boolean shouldTickBlocksAt(BlockPos p_220394_) {
-      return this.shouldTickBlocksAt(ChunkPos.asLong(p_220394_));
-   }
-
-   public Explosion explode(@Nullable Entity p_46512_, double p_46513_, double p_46514_, double p_46515_, float p_46516_, Explosion.BlockInteraction p_46517_) {
-      return this.explode(p_46512_, (DamageSource)null, (ExplosionDamageCalculator)null, p_46513_, p_46514_, p_46515_, p_46516_, false, p_46517_);
-   }
-
-   public Explosion explode(@Nullable Entity p_46519_, double p_46520_, double p_46521_, double p_46522_, float p_46523_, boolean p_46524_, Explosion.BlockInteraction p_46525_) {
-      return this.explode(p_46519_, (DamageSource)null, (ExplosionDamageCalculator)null, p_46520_, p_46521_, p_46522_, p_46523_, p_46524_, p_46525_);
-   }
-
-   public Explosion explode(@Nullable Entity p_46526_, @Nullable DamageSource p_46527_, @Nullable ExplosionDamageCalculator p_46528_, double p_46529_, double p_46530_, double p_46531_, float p_46532_, boolean p_46533_, Explosion.BlockInteraction p_46534_) {
-      Explosion explosion = new Explosion(this, p_46526_, p_46527_, p_46528_, p_46529_, p_46530_, p_46531_, p_46532_, p_46533_, p_46534_);
-      explosion.explode();
-      explosion.finalizeExplosion(true);
-      return explosion;
-   }
-
-   public abstract String gatherChunkSourceStats();
-
-   @Nullable
-   public BlockEntity getBlockEntity(BlockPos p_46716_) {
-      if (this.isOutsideBuildHeight(p_46716_)) {
-         return null;
-      } else {
-         return !this.isClientSide && Thread.currentThread() != this.thread ? null : this.getChunkAt(p_46716_).getBlockEntity(p_46716_, LevelChunk.EntityCreationType.IMMEDIATE);
-      }
-   }
-
-   public void setBlockEntity(BlockEntity p_151524_) {
-      BlockPos blockpos = p_151524_.getBlockPos();
-      if (!this.isOutsideBuildHeight(blockpos)) {
-         this.getChunkAt(blockpos).addAndRegisterBlockEntity(p_151524_);
-      }
-   }
-
-   public void removeBlockEntity(BlockPos p_46748_) {
-      if (!this.isOutsideBuildHeight(p_46748_)) {
-         this.getChunkAt(p_46748_).removeBlockEntity(p_46748_);
-      }
-   }
-
-   public boolean isLoaded(BlockPos p_46750_) {
-      return this.isOutsideBuildHeight(p_46750_) ? false : this.getChunkSource().hasChunk(SectionPos.blockToSectionCoord(p_46750_.getX()), SectionPos.blockToSectionCoord(p_46750_.getZ()));
-   }
-
-   public boolean loadedAndEntityCanStandOnFace(BlockPos p_46579_, Entity p_46580_, Direction p_46581_) {
-      if (this.isOutsideBuildHeight(p_46579_)) {
-         return false;
-      } else {
-         ChunkAccess chunkaccess = this.getChunk(SectionPos.blockToSectionCoord(p_46579_.getX()), SectionPos.blockToSectionCoord(p_46579_.getZ()), ChunkStatus.FULL, false);
-         return chunkaccess == null ? false : chunkaccess.getBlockState(p_46579_).entityCanStandOnFace(this, p_46579_, p_46580_, p_46581_);
-      }
-   }
-
-   public boolean loadedAndEntityCanStandOn(BlockPos p_46576_, Entity p_46577_) {
-      return this.loadedAndEntityCanStandOnFace(p_46576_, p_46577_, Direction.UP);
-   }
-
-   public void updateSkyBrightness() {
-      double d0 = 1.0D - (double)(this.getRainLevel(1.0F) * 5.0F) / 16.0D;
-      double d1 = 1.0D - (double)(this.getThunderLevel(1.0F) * 5.0F) / 16.0D;
-      double d2 = 0.5D + 2.0D * Mth.clamp((double)Mth.cos(this.getTimeOfDay(1.0F) * ((float)Math.PI * 2F)), -0.25D, 0.25D);
-      this.skyDarken = (int)((1.0D - d2 * d0 * d1) * 11.0D);
-   }
-
-   public void setSpawnSettings(boolean p_46704_, boolean p_46705_) {
-      this.getChunkSource().setSpawnSettings(p_46704_, p_46705_);
-   }
-
-   public BlockPos getSharedSpawnPos() {
-      BlockPos blockpos = new BlockPos(this.levelData.getXSpawn(), this.levelData.getYSpawn(), this.levelData.getZSpawn());
-      if (!this.getWorldBorder().isWithinBounds(blockpos)) {
-         blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, new BlockPos(this.getWorldBorder().getCenterX(), 0.0D, this.getWorldBorder().getCenterZ()));
-      }
-
-      return blockpos;
-   }
-
-   public float getSharedSpawnAngle() {
-      return this.levelData.getSpawnAngle();
-   }
-
-   protected void prepareWeather() {
-      if (this.levelData.isRaining()) {
-         this.rainLevel = 1.0F;
-         if (this.levelData.isThundering()) {
-            this.thunderLevel = 1.0F;
-         }
-      }
-
-   }
-
-   public void close() throws IOException {
-      this.getChunkSource().close();
-   }
-
-   @Nullable
-   public BlockGetter getChunkForCollisions(int p_46711_, int p_46712_) {
-      return this.getChunk(p_46711_, p_46712_, ChunkStatus.FULL, false);
-   }
-
-   public List<Entity> getEntities(@Nullable Entity p_46536_, AABB p_46537_, Predicate<? super Entity> p_46538_) {
-      this.getProfiler().incrementCounter("getEntities");
-      List<Entity> list = Lists.newArrayList();
-      this.getEntities().get(p_46537_, (p_151522_) -> {
-         if (p_151522_ != p_46536_ && p_46538_.test(p_151522_)) {
-            list.add(p_151522_);
-         }
-
-         if (p_151522_ instanceof EnderDragon) {
-            for(EnderDragonPart enderdragonpart : ((EnderDragon)p_151522_).getSubEntities()) {
-               if (p_151522_ != p_46536_ && p_46538_.test(enderdragonpart)) {
-                  list.add(enderdragonpart);
-               }
+            if (flag)
+            {
+                this.gameEvent(GameEvent.BLOCK_DESTROY, pPos, GameEvent.Context.of(pEntity, blockstate));
             }
-         }
 
-      });
-      return list;
-   }
+            return flag;
+        }
+    }
 
-   public <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> p_151528_, AABB p_151529_, Predicate<? super T> p_151530_) {
-      this.getProfiler().incrementCounter("getEntities");
-      List<T> list = Lists.newArrayList();
-      this.getEntities().get(p_151528_, p_151529_, (p_151539_) -> {
-         if (p_151530_.test(p_151539_)) {
-            list.add(p_151539_);
-         }
+    public void addDestroyBlockEffect(BlockPos pPos, BlockState pState)
+    {
+    }
 
-         if (p_151539_ instanceof EnderDragon enderdragon) {
-            for(EnderDragonPart enderdragonpart : enderdragon.getSubEntities()) {
-               T t = p_151528_.tryCast(enderdragonpart);
-               if (t != null && p_151530_.test(t)) {
-                  list.add(t);
-               }
+    public boolean setBlockAndUpdate(BlockPos pPos, BlockState pState)
+    {
+        return this.setBlock(pPos, pState, 3);
+    }
+
+    public abstract void sendBlockUpdated(BlockPos pPos, BlockState pOldState, BlockState pNewState, int pFlags);
+
+    public void setBlocksDirty(BlockPos pBlockPos, BlockState pOldState, BlockState pNewState)
+    {
+    }
+
+    public void updateNeighborsAt(BlockPos pPos, Block pBlock)
+    {
+    }
+
+    public void updateNeighborsAtExceptFromFacing(BlockPos pPos, Block pBlockType, Direction pSkipSide)
+    {
+    }
+
+    public void neighborChanged(BlockPos pPos, Block pBlock, BlockPos pFromPos)
+    {
+    }
+
+    public void neighborChanged(BlockState p_220379_, BlockPos p_220380_, Block p_220381_, BlockPos p_220382_, boolean p_220383_)
+    {
+    }
+
+    public void neighborShapeChanged(Direction p_220385_, BlockState p_220386_, BlockPos p_220387_, BlockPos p_220388_, int p_220389_, int p_220390_)
+    {
+        this.neighborUpdater.shapeUpdate(p_220385_, p_220386_, p_220387_, p_220388_, p_220389_, p_220390_);
+    }
+
+    public int getHeight(Heightmap.Types pHeightmapType, int pX, int pZ)
+    {
+        int i;
+
+        if (pX >= -30000000 && pZ >= -30000000 && pX < 30000000 && pZ < 30000000)
+        {
+            if (this.hasChunk(SectionPos.blockToSectionCoord(pX), SectionPos.blockToSectionCoord(pZ)))
+            {
+                i = this.getChunk(SectionPos.blockToSectionCoord(pX), SectionPos.blockToSectionCoord(pZ)).getHeight(pHeightmapType, pX & 15, pZ & 15) + 1;
             }
-         }
+            else
+            {
+                i = this.getMinBuildHeight();
+            }
+        }
+        else
+        {
+            i = this.getSeaLevel() + 1;
+        }
 
-      });
-      return list;
-   }
+        return i;
+    }
 
-   @Nullable
-   public abstract Entity getEntity(int p_46492_);
+    public LevelLightEngine getLightEngine()
+    {
+        return this.getChunkSource().getLightEngine();
+    }
 
-   public void blockEntityChanged(BlockPos p_151544_) {
-      if (this.hasChunkAt(p_151544_)) {
-         this.getChunkAt(p_151544_).setUnsaved(true);
-      }
+    public BlockState getBlockState(BlockPos pPos)
+    {
+        if (this.isOutsideBuildHeight(pPos))
+        {
+            return Blocks.VOID_AIR.defaultBlockState();
+        }
+        else
+        {
+            LevelChunk levelchunk = this.getChunk(SectionPos.blockToSectionCoord(pPos.getX()), SectionPos.blockToSectionCoord(pPos.getZ()));
+            return levelchunk.getBlockState(pPos);
+        }
+    }
 
-   }
+    public FluidState getFluidState(BlockPos pPos)
+    {
+        if (this.isOutsideBuildHeight(pPos))
+        {
+            return Fluids.EMPTY.defaultFluidState();
+        }
+        else
+        {
+            LevelChunk levelchunk = this.getChunkAt(pPos);
+            return levelchunk.getFluidState(pPos);
+        }
+    }
 
-   public int getSeaLevel() {
-      return 63;
-   }
+    public boolean isDay()
+    {
+        return !this.dimensionType().hasFixedTime() && this.skyDarken < 4;
+    }
 
-   public int getDirectSignalTo(BlockPos p_46752_) {
-      int i = 0;
-      i = Math.max(i, this.getDirectSignal(p_46752_.below(), Direction.DOWN));
-      if (i >= 15) {
-         return i;
-      } else {
-         i = Math.max(i, this.getDirectSignal(p_46752_.above(), Direction.UP));
-         if (i >= 15) {
+    public boolean isNight()
+    {
+        return !this.dimensionType().hasFixedTime() && !this.isDay();
+    }
+
+    public void playSound(@Nullable Player pPlayer, BlockPos pPos, SoundEvent pSound, SoundSource pCategory, float pVolume, float pPitch)
+    {
+        this.playSound(pPlayer, (double)pPos.getX() + 0.5D, (double)pPos.getY() + 0.5D, (double)pPos.getZ() + 0.5D, pSound, pCategory, pVolume, pPitch);
+    }
+
+    public abstract void playSeededSound(@Nullable Player p_220363_, double p_220364_, double p_220365_, double p_220366_, SoundEvent p_220367_, SoundSource p_220368_, float p_220369_, float p_220370_, long p_220371_);
+
+    public abstract void playSeededSound(@Nullable Player p_220372_, Entity p_220373_, SoundEvent p_220374_, SoundSource p_220375_, float p_220376_, float p_220377_, long p_220378_);
+
+    public void playSound(@Nullable Player pPlayer, double pX, double p_46545_, double pY, SoundEvent p_46547_, SoundSource pZ, float p_46549_, float pSound)
+    {
+        this.playSeededSound(pPlayer, pX, p_46545_, pY, p_46547_, pZ, p_46549_, pSound, this.threadSafeRandom.nextLong());
+    }
+
+    public void playSound(@Nullable Player pPlayer, Entity pPos, SoundEvent pSound, SoundSource pCategory, float pVolume, float pPitch)
+    {
+        this.playSeededSound(pPlayer, pPos, pSound, pCategory, pVolume, pPitch, this.threadSafeRandom.nextLong());
+    }
+
+    public void playLocalSound(double pX, double p_46483_, double pY, SoundEvent p_46485_, SoundSource pZ, float p_46487_, float pSound, boolean pCategory)
+    {
+    }
+
+    public void addParticle(ParticleOptions pParticleData, double pX, double p_46633_, double pY, double p_46635_, double pZ, double p_46637_)
+    {
+    }
+
+    public void addParticle(ParticleOptions pParticleData, boolean pForceAlwaysRender, double pX, double p_46641_, double pY, double p_46643_, double pZ, double p_46645_)
+    {
+    }
+
+    public void addAlwaysVisibleParticle(ParticleOptions pParticleData, double pX, double p_46686_, double pY, double p_46688_, double pZ, double p_46690_)
+    {
+    }
+
+    public void addAlwaysVisibleParticle(ParticleOptions pParticleData, boolean pIgnoreRange, double pX, double p_46694_, double pY, double p_46696_, double pZ, double p_46698_)
+    {
+    }
+
+    public float getSunAngle(float pPartialTicks)
+    {
+        float f = this.getTimeOfDay(pPartialTicks);
+        return f * ((float)Math.PI * 2F);
+    }
+
+    public void addBlockEntityTicker(TickingBlockEntity pTicker)
+    {
+        (this.tickingBlockEntities ? this.pendingBlockEntityTickers : this.blockEntityTickers).add(pTicker);
+    }
+
+    protected void tickBlockEntities()
+    {
+        ProfilerFiller profilerfiller = this.getProfiler();
+        profilerfiller.push("blockEntities");
+        this.tickingBlockEntities = true;
+
+        if (!this.pendingBlockEntityTickers.isEmpty())
+        {
+            this.blockEntityTickers.addAll(this.pendingBlockEntityTickers);
+            this.pendingBlockEntityTickers.clear();
+        }
+
+        Iterator<TickingBlockEntity> iterator = this.blockEntityTickers.iterator();
+
+        while (iterator.hasNext())
+        {
+            TickingBlockEntity tickingblockentity = iterator.next();
+
+            if (tickingblockentity.isRemoved())
+            {
+                iterator.remove();
+            }
+            else if (this.shouldTickBlocksAt(tickingblockentity.getPos()))
+            {
+                tickingblockentity.tick();
+            }
+        }
+
+        this.tickingBlockEntities = false;
+        profilerfiller.pop();
+    }
+
+    public <T extends Entity> void guardEntityTick(Consumer<T> pConsumerEntity, T pEntity)
+    {
+        try
+        {
+            pConsumerEntity.accept(pEntity);
+        }
+        catch (Throwable throwable)
+        {
+            CrashReport crashreport = CrashReport.forThrowable(throwable, "Ticking entity");
+            CrashReportCategory crashreportcategory = crashreport.addCategory("Entity being ticked");
+            pEntity.fillCrashReportCategory(crashreportcategory);
+            throw new ReportedException(crashreport);
+        }
+    }
+
+    public boolean shouldTickDeath(Entity p_186458_)
+    {
+        return true;
+    }
+
+    public boolean shouldTickBlocksAt(long p_186456_)
+    {
+        return true;
+    }
+
+    public boolean shouldTickBlocksAt(BlockPos p_220394_)
+    {
+        return this.shouldTickBlocksAt(ChunkPos.asLong(p_220394_));
+    }
+
+    public Explosion explode(@Nullable Entity pEntity, double pX, double p_46514_, double pY, float p_46516_, Explosion.BlockInteraction pZ)
+    {
+        return this.explode(pEntity, (DamageSource)null, (ExplosionDamageCalculator)null, pX, p_46514_, pY, p_46516_, false, pZ);
+    }
+
+    public Explosion explode(@Nullable Entity pEntity, double pX, double p_46521_, double pY, float p_46523_, boolean pZ, Explosion.BlockInteraction p_46525_)
+    {
+        return this.explode(pEntity, (DamageSource)null, (ExplosionDamageCalculator)null, pX, p_46521_, pY, p_46523_, pZ, p_46525_);
+    }
+
+    public Explosion explode(@Nullable Entity pExploder, @Nullable DamageSource pDamageSource, @Nullable ExplosionDamageCalculator pContext, double pX, double p_46530_, double pY, float p_46532_, boolean pZ, Explosion.BlockInteraction p_46534_)
+    {
+        Explosion explosion = new Explosion(this, pExploder, pDamageSource, pContext, pX, p_46530_, pY, p_46532_, pZ, p_46534_);
+        explosion.explode();
+        explosion.finalizeExplosion(true);
+        return explosion;
+    }
+
+    public abstract String gatherChunkSourceStats();
+
+    @Nullable
+    public BlockEntity getBlockEntity(BlockPos pPos)
+    {
+        if (this.isOutsideBuildHeight(pPos))
+        {
+            return null;
+        }
+        else
+        {
+            return !this.isClientSide && Thread.currentThread() != this.thread ? null : this.getChunkAt(pPos).getBlockEntity(pPos, LevelChunk.EntityCreationType.IMMEDIATE);
+        }
+    }
+
+    public void setBlockEntity(BlockEntity pBlockEntity)
+    {
+        BlockPos blockpos = pBlockEntity.getBlockPos();
+
+        if (!this.isOutsideBuildHeight(blockpos))
+        {
+            this.getChunkAt(blockpos).addAndRegisterBlockEntity(pBlockEntity);
+        }
+    }
+
+    public void removeBlockEntity(BlockPos pPos)
+    {
+        if (!this.isOutsideBuildHeight(pPos))
+        {
+            this.getChunkAt(pPos).removeBlockEntity(pPos);
+        }
+    }
+
+    public boolean isLoaded(BlockPos pPos)
+    {
+        return this.isOutsideBuildHeight(pPos) ? false : this.getChunkSource().hasChunk(SectionPos.blockToSectionCoord(pPos.getX()), SectionPos.blockToSectionCoord(pPos.getZ()));
+    }
+
+    public boolean loadedAndEntityCanStandOnFace(BlockPos pPos, Entity pEntity, Direction pDirection)
+    {
+        if (this.isOutsideBuildHeight(pPos))
+        {
+            return false;
+        }
+        else
+        {
+            ChunkAccess chunkaccess = this.getChunk(SectionPos.blockToSectionCoord(pPos.getX()), SectionPos.blockToSectionCoord(pPos.getZ()), ChunkStatus.FULL, false);
+            return chunkaccess == null ? false : chunkaccess.getBlockState(pPos).entityCanStandOnFace(this, pPos, pEntity, pDirection);
+        }
+    }
+
+    public boolean loadedAndEntityCanStandOn(BlockPos pPos, Entity pEntity)
+    {
+        return this.loadedAndEntityCanStandOnFace(pPos, pEntity, Direction.UP);
+    }
+
+    public void updateSkyBrightness()
+    {
+        double d0 = 1.0D - (double)(this.getRainLevel(1.0F) * 5.0F) / 16.0D;
+        double d1 = 1.0D - (double)(this.getThunderLevel(1.0F) * 5.0F) / 16.0D;
+        double d2 = 0.5D + 2.0D * Mth.clamp((double)Mth.cos(this.getTimeOfDay(1.0F) * ((float)Math.PI * 2F)), -0.25D, 0.25D);
+        this.skyDarken = (int)((1.0D - d2 * d0 * d1) * 11.0D);
+    }
+
+    public void setSpawnSettings(boolean pHostile, boolean pPeaceful)
+    {
+        this.getChunkSource().setSpawnSettings(pHostile, pPeaceful);
+    }
+
+    public BlockPos getSharedSpawnPos()
+    {
+        BlockPos blockpos = new BlockPos(this.levelData.getXSpawn(), this.levelData.getYSpawn(), this.levelData.getZSpawn());
+
+        if (!this.getWorldBorder().isWithinBounds(blockpos))
+        {
+            blockpos = this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, new BlockPos(this.getWorldBorder().getCenterX(), 0.0D, this.getWorldBorder().getCenterZ()));
+        }
+
+        return blockpos;
+    }
+
+    public float getSharedSpawnAngle()
+    {
+        return this.levelData.getSpawnAngle();
+    }
+
+    protected void prepareWeather()
+    {
+        if (this.levelData.isRaining())
+        {
+            this.rainLevel = 1.0F;
+
+            if (this.levelData.isThundering())
+            {
+                this.thunderLevel = 1.0F;
+            }
+        }
+    }
+
+    public void close() throws IOException
+    {
+        this.getChunkSource().close();
+    }
+
+    @Nullable
+    public BlockGetter getChunkForCollisions(int pChunkX, int pChunkZ)
+    {
+        return this.getChunk(pChunkX, pChunkZ, ChunkStatus.FULL, false);
+    }
+
+    public List<Entity> getEntities(@Nullable Entity pEntity, AABB pBoundingBox, Predicate <? super Entity > pPredicate)
+    {
+        this.getProfiler().incrementCounter("getEntities");
+        List<Entity> list = Lists.newArrayList();
+        this.getEntities().get(pBoundingBox, (p_151522_) ->
+        {
+            if (p_151522_ != pEntity && pPredicate.test(p_151522_))
+            {
+                list.add(p_151522_);
+            }
+
+            if (p_151522_ instanceof EnderDragon)
+            {
+                for (EnderDragonPart enderdragonpart : ((EnderDragon)p_151522_).getSubEntities())
+                {
+                    if (p_151522_ != pEntity && pPredicate.test(enderdragonpart))
+                    {
+                        list.add(enderdragonpart);
+                    }
+                }
+            }
+        });
+        return list;
+    }
+
+    public <T extends Entity> List<T> getEntities(EntityTypeTest<Entity, T> pEntity, AABB pBoundingBox, Predicate <? super T > pPredicate)
+    {
+        this.getProfiler().incrementCounter("getEntities");
+        List<T> list = Lists.newArrayList();
+        this.getEntities().get(pEntity, pBoundingBox, (p_151539_) ->
+        {
+            if (pPredicate.test(p_151539_))
+            {
+                list.add(p_151539_);
+            }
+
+            if (p_151539_ instanceof EnderDragon enderdragon)
+            {
+                for (EnderDragonPart enderdragonpart : enderdragon.getSubEntities())
+                {
+                    T t = pEntity.tryCast(enderdragonpart);
+
+                    if (t != null && pPredicate.test(t))
+                    {
+                        list.add(t);
+                    }
+                }
+            }
+        });
+        return list;
+    }
+
+    @Nullable
+    public abstract Entity getEntity(int pId);
+
+    public void blockEntityChanged(BlockPos pPos)
+    {
+        if (this.hasChunkAt(pPos))
+        {
+            this.getChunkAt(pPos).setUnsaved(true);
+        }
+    }
+
+    public int getSeaLevel()
+    {
+        return 63;
+    }
+
+    public int getDirectSignalTo(BlockPos pPos)
+    {
+        int i = 0;
+        i = Math.max(i, this.getDirectSignal(pPos.below(), Direction.DOWN));
+
+        if (i >= 15)
+        {
             return i;
-         } else {
-            i = Math.max(i, this.getDirectSignal(p_46752_.north(), Direction.NORTH));
-            if (i >= 15) {
-               return i;
-            } else {
-               i = Math.max(i, this.getDirectSignal(p_46752_.south(), Direction.SOUTH));
-               if (i >= 15) {
-                  return i;
-               } else {
-                  i = Math.max(i, this.getDirectSignal(p_46752_.west(), Direction.WEST));
-                  if (i >= 15) {
-                     return i;
-                  } else {
-                     i = Math.max(i, this.getDirectSignal(p_46752_.east(), Direction.EAST));
-                     return i >= 15 ? i : i;
-                  }
-               }
+        }
+        else
+        {
+            i = Math.max(i, this.getDirectSignal(pPos.above(), Direction.UP));
+
+            if (i >= 15)
+            {
+                return i;
             }
-         }
-      }
-   }
+            else
+            {
+                i = Math.max(i, this.getDirectSignal(pPos.north(), Direction.NORTH));
 
-   public boolean hasSignal(BlockPos p_46617_, Direction p_46618_) {
-      return this.getSignal(p_46617_, p_46618_) > 0;
-   }
+                if (i >= 15)
+                {
+                    return i;
+                }
+                else
+                {
+                    i = Math.max(i, this.getDirectSignal(pPos.south(), Direction.SOUTH));
 
-   public int getSignal(BlockPos p_46682_, Direction p_46683_) {
-      BlockState blockstate = this.getBlockState(p_46682_);
-      int i = blockstate.getSignal(this, p_46682_, p_46683_);
-      return blockstate.isRedstoneConductor(this, p_46682_) ? Math.max(i, this.getDirectSignalTo(p_46682_)) : i;
-   }
+                    if (i >= 15)
+                    {
+                        return i;
+                    }
+                    else
+                    {
+                        i = Math.max(i, this.getDirectSignal(pPos.west(), Direction.WEST));
 
-   public boolean hasNeighborSignal(BlockPos p_46754_) {
-      if (this.getSignal(p_46754_.below(), Direction.DOWN) > 0) {
-         return true;
-      } else if (this.getSignal(p_46754_.above(), Direction.UP) > 0) {
-         return true;
-      } else if (this.getSignal(p_46754_.north(), Direction.NORTH) > 0) {
-         return true;
-      } else if (this.getSignal(p_46754_.south(), Direction.SOUTH) > 0) {
-         return true;
-      } else if (this.getSignal(p_46754_.west(), Direction.WEST) > 0) {
-         return true;
-      } else {
-         return this.getSignal(p_46754_.east(), Direction.EAST) > 0;
-      }
-   }
-
-   public int getBestNeighborSignal(BlockPos p_46756_) {
-      int i = 0;
-
-      for(Direction direction : DIRECTIONS) {
-         int j = this.getSignal(p_46756_.relative(direction), direction);
-         if (j >= 15) {
-            return 15;
-         }
-
-         if (j > i) {
-            i = j;
-         }
-      }
-
-      return i;
-   }
-
-   public void disconnect() {
-   }
-
-   public long getGameTime() {
-      return this.levelData.getGameTime();
-   }
-
-   public long getDayTime() {
-      return this.levelData.getDayTime();
-   }
-
-   public boolean mayInteract(Player p_46557_, BlockPos p_46558_) {
-      return true;
-   }
-
-   public void broadcastEntityEvent(Entity p_46509_, byte p_46510_) {
-   }
-
-   public void blockEvent(BlockPos p_46582_, Block p_46583_, int p_46584_, int p_46585_) {
-      this.getBlockState(p_46582_).triggerEvent(this, p_46582_, p_46584_, p_46585_);
-   }
-
-   public LevelData getLevelData() {
-      return this.levelData;
-   }
-
-   public GameRules getGameRules() {
-      return this.levelData.getGameRules();
-   }
-
-   public float getThunderLevel(float p_46662_) {
-      return Mth.lerp(p_46662_, this.oThunderLevel, this.thunderLevel) * this.getRainLevel(p_46662_);
-   }
-
-   public void setThunderLevel(float p_46708_) {
-      float f = Mth.clamp(p_46708_, 0.0F, 1.0F);
-      this.oThunderLevel = f;
-      this.thunderLevel = f;
-   }
-
-   public float getRainLevel(float p_46723_) {
-      return Mth.lerp(p_46723_, this.oRainLevel, this.rainLevel);
-   }
-
-   public void setRainLevel(float p_46735_) {
-      float f = Mth.clamp(p_46735_, 0.0F, 1.0F);
-      this.oRainLevel = f;
-      this.rainLevel = f;
-   }
-
-   public boolean isThundering() {
-      if (this.dimensionType().hasSkyLight() && !this.dimensionType().hasCeiling()) {
-         return (double)this.getThunderLevel(1.0F) > 0.9D;
-      } else {
-         return false;
-      }
-   }
-
-   public boolean isRaining() {
-      return (double)this.getRainLevel(1.0F) > 0.2D;
-   }
-
-   public boolean isRainingAt(BlockPos p_46759_) {
-      if (!this.isRaining()) {
-         return false;
-      } else if (!this.canSeeSky(p_46759_)) {
-         return false;
-      } else if (this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, p_46759_).getY() > p_46759_.getY()) {
-         return false;
-      } else {
-         Biome biome = this.getBiome(p_46759_).value();
-         return biome.getPrecipitation() == Biome.Precipitation.RAIN && biome.warmEnoughToRain(p_46759_);
-      }
-   }
-
-   public boolean isHumidAt(BlockPos p_46762_) {
-      Biome biome = this.getBiome(p_46762_).value();
-      return biome.isHumid();
-   }
-
-   @Nullable
-   public abstract MapItemSavedData getMapData(String p_46650_);
-
-   public abstract void setMapData(String p_151533_, MapItemSavedData p_151534_);
-
-   public abstract int getFreeMapId();
-
-   public void globalLevelEvent(int p_46665_, BlockPos p_46666_, int p_46667_) {
-   }
-
-   public CrashReportCategory fillReportDetails(CrashReport p_46656_) {
-      CrashReportCategory crashreportcategory = p_46656_.addCategory("Affected level", 1);
-      crashreportcategory.setDetail("All players", () -> {
-         return this.players().size() + " total; " + this.players();
-      });
-      crashreportcategory.setDetail("Chunk stats", this.getChunkSource()::gatherStats);
-      crashreportcategory.setDetail("Level dimension", () -> {
-         return this.dimension().location().toString();
-      });
-
-      try {
-         this.levelData.fillCrashReportCategory(crashreportcategory, this);
-      } catch (Throwable throwable) {
-         crashreportcategory.setDetailError("Level Data Unobtainable", throwable);
-      }
-
-      return crashreportcategory;
-   }
-
-   public abstract void destroyBlockProgress(int p_46506_, BlockPos p_46507_, int p_46508_);
-
-   public void createFireworks(double p_46475_, double p_46476_, double p_46477_, double p_46478_, double p_46479_, double p_46480_, @Nullable CompoundTag p_46481_) {
-   }
-
-   public abstract Scoreboard getScoreboard();
-
-   public void updateNeighbourForOutputSignal(BlockPos p_46718_, Block p_46719_) {
-      for(Direction direction : Direction.Plane.HORIZONTAL) {
-         BlockPos blockpos = p_46718_.relative(direction);
-         if (this.hasChunkAt(blockpos)) {
-            BlockState blockstate = this.getBlockState(blockpos);
-            if (blockstate.is(Blocks.COMPARATOR)) {
-               this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
-            } else if (blockstate.isRedstoneConductor(this, blockpos)) {
-               blockpos = blockpos.relative(direction);
-               blockstate = this.getBlockState(blockpos);
-               if (blockstate.is(Blocks.COMPARATOR)) {
-                  this.neighborChanged(blockstate, blockpos, p_46719_, p_46718_, false);
-               }
+                        if (i >= 15)
+                        {
+                            return i;
+                        }
+                        else
+                        {
+                            i = Math.max(i, this.getDirectSignal(pPos.east(), Direction.EAST));
+                            return i >= 15 ? i : i;
+                        }
+                    }
+                }
             }
-         }
-      }
+        }
+    }
 
-   }
+    public boolean hasSignal(BlockPos pPos, Direction pSide)
+    {
+        return this.getSignal(pPos, pSide) > 0;
+    }
 
-   public DifficultyInstance getCurrentDifficultyAt(BlockPos p_46730_) {
-      long i = 0L;
-      float f = 0.0F;
-      if (this.hasChunkAt(p_46730_)) {
-         f = this.getMoonBrightness();
-         i = this.getChunkAt(p_46730_).getInhabitedTime();
-      }
+    public int getSignal(BlockPos pPos, Direction pFacing)
+    {
+        BlockState blockstate = this.getBlockState(pPos);
+        int i = blockstate.getSignal(this, pPos, pFacing);
+        return blockstate.isRedstoneConductor(this, pPos) ? Math.max(i, this.getDirectSignalTo(pPos)) : i;
+    }
 
-      return new DifficultyInstance(this.getDifficulty(), this.getDayTime(), i, f);
-   }
+    public boolean hasNeighborSignal(BlockPos pPos)
+    {
+        if (this.getSignal(pPos.below(), Direction.DOWN) > 0)
+        {
+            return true;
+        }
+        else if (this.getSignal(pPos.above(), Direction.UP) > 0)
+        {
+            return true;
+        }
+        else if (this.getSignal(pPos.north(), Direction.NORTH) > 0)
+        {
+            return true;
+        }
+        else if (this.getSignal(pPos.south(), Direction.SOUTH) > 0)
+        {
+            return true;
+        }
+        else if (this.getSignal(pPos.west(), Direction.WEST) > 0)
+        {
+            return true;
+        }
+        else
+        {
+            return this.getSignal(pPos.east(), Direction.EAST) > 0;
+        }
+    }
 
-   public int getSkyDarken() {
-      return this.skyDarken;
-   }
+    public int getBestNeighborSignal(BlockPos pPos)
+    {
+        int i = 0;
 
-   public void setSkyFlashTime(int p_46709_) {
-   }
+        for (Direction direction : DIRECTIONS)
+        {
+            int j = this.getSignal(pPos.relative(direction), direction);
 
-   public WorldBorder getWorldBorder() {
-      return this.worldBorder;
-   }
+            if (j >= 15)
+            {
+                return 15;
+            }
 
-   public void sendPacketToServer(Packet<?> p_46657_) {
-      throw new UnsupportedOperationException("Can't send packets to server unless you're on the client.");
-   }
+            if (j > i)
+            {
+                i = j;
+            }
+        }
 
-   public DimensionType dimensionType() {
-      return this.dimensionTypeRegistration.value();
-   }
+        return i;
+    }
 
-   public ResourceKey<DimensionType> dimensionTypeId() {
-      return this.dimensionTypeId;
-   }
+    public void disconnect()
+    {
+    }
 
-   public Holder<DimensionType> dimensionTypeRegistration() {
-      return this.dimensionTypeRegistration;
-   }
+    public long getGameTime()
+    {
+        return this.levelData.getGameTime();
+    }
 
-   public ResourceKey<Level> dimension() {
-      return this.dimension;
-   }
+    public long getDayTime()
+    {
+        return this.levelData.getDayTime();
+    }
 
-   public RandomSource getRandom() {
-      return this.random;
-   }
+    public boolean mayInteract(Player pPlayer, BlockPos pPos)
+    {
+        return true;
+    }
 
-   public boolean isStateAtPosition(BlockPos p_46620_, Predicate<BlockState> p_46621_) {
-      return p_46621_.test(this.getBlockState(p_46620_));
-   }
+    public void broadcastEntityEvent(Entity pEntity, byte pState)
+    {
+    }
 
-   public boolean isFluidAtPosition(BlockPos p_151541_, Predicate<FluidState> p_151542_) {
-      return p_151542_.test(this.getFluidState(p_151541_));
-   }
+    public void blockEvent(BlockPos pPos, Block pBlock, int pEventID, int pEventParam)
+    {
+        this.getBlockState(pPos).triggerEvent(this, pPos, pEventID, pEventParam);
+    }
 
-   public abstract RecipeManager getRecipeManager();
+    public LevelData getLevelData()
+    {
+        return this.levelData;
+    }
 
-   public BlockPos getBlockRandomPos(int p_46497_, int p_46498_, int p_46499_, int p_46500_) {
-      this.randValue = this.randValue * 3 + 1013904223;
-      int i = this.randValue >> 2;
-      return new BlockPos(p_46497_ + (i & 15), p_46498_ + (i >> 16 & p_46500_), p_46499_ + (i >> 8 & 15));
-   }
+    public GameRules getGameRules()
+    {
+        return this.levelData.getGameRules();
+    }
 
-   public boolean noSave() {
-      return false;
-   }
+    public float getThunderLevel(float pDelta)
+    {
+        return Mth.lerp(pDelta, this.oThunderLevel, this.thunderLevel) * this.getRainLevel(pDelta);
+    }
 
-   public ProfilerFiller getProfiler() {
-      return this.profiler.get();
-   }
+    public void setThunderLevel(float pStrength)
+    {
+        float f = Mth.clamp(pStrength, 0.0F, 1.0F);
+        this.oThunderLevel = f;
+        this.thunderLevel = f;
+    }
 
-   public Supplier<ProfilerFiller> getProfilerSupplier() {
-      return this.profiler;
-   }
+    public float getRainLevel(float pDelta)
+    {
+        return Mth.lerp(pDelta, this.oRainLevel, this.rainLevel);
+    }
 
-   public BiomeManager getBiomeManager() {
-      return this.biomeManager;
-   }
+    public void setRainLevel(float pStrength)
+    {
+        float f = Mth.clamp(pStrength, 0.0F, 1.0F);
+        this.oRainLevel = f;
+        this.rainLevel = f;
+    }
 
-   public final boolean isDebug() {
-      return this.isDebug;
-   }
+    public boolean isThundering()
+    {
+        if (this.dimensionType().hasSkyLight() && !this.dimensionType().hasCeiling())
+        {
+            return (double)this.getThunderLevel(1.0F) > 0.9D;
+        }
+        else
+        {
+            return false;
+        }
+    }
 
-   protected abstract LevelEntityGetter<Entity> getEntities();
+    public boolean isRaining()
+    {
+        return (double)this.getRainLevel(1.0F) > 0.2D;
+    }
 
-   public long nextSubTickCount() {
-      return (long)(this.subTickCount++);
-   }
+    public boolean isRainingAt(BlockPos pPosition)
+    {
+        if (!this.isRaining())
+        {
+            return false;
+        }
+        else if (!this.canSeeSky(pPosition))
+        {
+            return false;
+        }
+        else if (this.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING, pPosition).getY() > pPosition.getY())
+        {
+            return false;
+        }
+        else
+        {
+            Biome biome = this.getBiome(pPosition).value();
+            return biome.getPrecipitation() == Biome.Precipitation.RAIN && biome.warmEnoughToRain(pPosition);
+        }
+    }
+
+    public boolean isHumidAt(BlockPos pPos)
+    {
+        Biome biome = this.getBiome(pPos).value();
+        return biome.isHumid();
+    }
+
+    @Nullable
+    public abstract MapItemSavedData getMapData(String pMapName);
+
+    public abstract void setMapData(String pMapId, MapItemSavedData pData);
+
+    public abstract int getFreeMapId();
+
+    public void globalLevelEvent(int pId, BlockPos pPos, int pData)
+    {
+    }
+
+    public CrashReportCategory fillReportDetails(CrashReport pReport)
+    {
+        CrashReportCategory crashreportcategory = pReport.addCategory("Affected level", 1);
+        crashreportcategory.setDetail("All players", () ->
+        {
+            return this.players().size() + " total; " + this.players();
+        });
+        crashreportcategory.setDetail("Chunk stats", this.getChunkSource()::gatherStats);
+        crashreportcategory.setDetail("Level dimension", () ->
+        {
+            return this.dimension().location().toString();
+        });
+
+        try
+        {
+            this.levelData.fillCrashReportCategory(crashreportcategory, this);
+        }
+        catch (Throwable throwable)
+        {
+            crashreportcategory.setDetailError("Level Data Unobtainable", throwable);
+        }
+
+        return crashreportcategory;
+    }
+
+    public abstract void destroyBlockProgress(int pBreakerId, BlockPos pPos, int pProgress);
+
+    public void createFireworks(double pX, double p_46476_, double pY, double p_46478_, double pZ, double p_46480_, @Nullable CompoundTag pMotionX)
+    {
+    }
+
+    public abstract Scoreboard getScoreboard();
+
+    public void updateNeighbourForOutputSignal(BlockPos pPos, Block pBlock)
+    {
+        for (Direction direction : Direction.Plane.HORIZONTAL)
+        {
+            BlockPos blockpos = pPos.relative(direction);
+
+            if (this.hasChunkAt(blockpos))
+            {
+                BlockState blockstate = this.getBlockState(blockpos);
+
+                if (blockstate.is(Blocks.COMPARATOR))
+                {
+                    this.neighborChanged(blockstate, blockpos, pBlock, pPos, false);
+                }
+                else if (blockstate.isRedstoneConductor(this, blockpos))
+                {
+                    blockpos = blockpos.relative(direction);
+                    blockstate = this.getBlockState(blockpos);
+
+                    if (blockstate.is(Blocks.COMPARATOR))
+                    {
+                        this.neighborChanged(blockstate, blockpos, pBlock, pPos, false);
+                    }
+                }
+            }
+        }
+    }
+
+    public DifficultyInstance getCurrentDifficultyAt(BlockPos pPos)
+    {
+        long i = 0L;
+        float f = 0.0F;
+
+        if (this.hasChunkAt(pPos))
+        {
+            f = this.getMoonBrightness();
+            i = this.getChunkAt(pPos).getInhabitedTime();
+        }
+
+        return new DifficultyInstance(this.getDifficulty(), this.getDayTime(), i, f);
+    }
+
+    public int getSkyDarken()
+    {
+        return this.skyDarken;
+    }
+
+    public void setSkyFlashTime(int pTimeFlash)
+    {
+    }
+
+    public WorldBorder getWorldBorder()
+    {
+        return this.worldBorder;
+    }
+
+    public void sendPacketToServer(Packet<?> pPacket)
+    {
+        throw new UnsupportedOperationException("Can't send packets to server unless you're on the client.");
+    }
+
+    public DimensionType dimensionType()
+    {
+        return (DimensionType)this.dimensionTypeRegistration.value();
+    }
+
+    public ResourceKey<DimensionType> dimensionTypeId()
+    {
+        return this.dimensionTypeId;
+    }
+
+    public Holder<DimensionType> dimensionTypeRegistration()
+    {
+        return this.dimensionTypeRegistration;
+    }
+
+    public ResourceKey<Level> dimension()
+    {
+        return this.dimension;
+    }
+
+    public RandomSource getRandom()
+    {
+        return this.random;
+    }
+
+    public boolean isStateAtPosition(BlockPos pPos, Predicate<BlockState> pState)
+    {
+        return pState.test(this.getBlockState(pPos));
+    }
+
+    public boolean isFluidAtPosition(BlockPos pPos, Predicate<FluidState> pPredicate)
+    {
+        return pPredicate.test(this.getFluidState(pPos));
+    }
+
+    public abstract RecipeManager getRecipeManager();
+
+    public BlockPos getBlockRandomPos(int pX, int pY, int pZ, int pYMask)
+    {
+        this.randValue = this.randValue * 3 + 1013904223;
+        int i = this.randValue >> 2;
+        return new BlockPos(pX + (i & 15), pY + (i >> 16 & pYMask), pZ + (i >> 8 & 15));
+    }
+
+    public boolean noSave()
+    {
+        return false;
+    }
+
+    public ProfilerFiller getProfiler()
+    {
+        return this.profiler.get();
+    }
+
+    public Supplier<ProfilerFiller> getProfilerSupplier()
+    {
+        return this.profiler;
+    }
+
+    public BiomeManager getBiomeManager()
+    {
+        return this.biomeManager;
+    }
+
+    public final boolean isDebug()
+    {
+        return this.isDebug;
+    }
+
+    protected abstract LevelEntityGetter<Entity> getEntities();
+
+    public long nextSubTickCount()
+    {
+        return (long)(this.subTickCount++);
+    }
 }

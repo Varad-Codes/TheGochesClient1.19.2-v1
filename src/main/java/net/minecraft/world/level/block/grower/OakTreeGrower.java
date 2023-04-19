@@ -5,12 +5,17 @@ import net.minecraft.data.worldgen.features.TreeFeatures;
 import net.minecraft.util.RandomSource;
 import net.minecraft.world.level.levelgen.feature.ConfiguredFeature;
 
-public class OakTreeGrower extends AbstractTreeGrower {
-   protected Holder<? extends ConfiguredFeature<?, ?>> getConfiguredFeature(RandomSource p_222938_, boolean p_222939_) {
-      if (p_222938_.nextInt(10) == 0) {
-         return p_222939_ ? TreeFeatures.FANCY_OAK_BEES_005 : TreeFeatures.FANCY_OAK;
-      } else {
-         return p_222939_ ? TreeFeatures.OAK_BEES_005 : TreeFeatures.OAK;
-      }
-   }
+public class OakTreeGrower extends AbstractTreeGrower
+{
+    protected Holder <? extends ConfiguredFeature <? , ? >> getConfiguredFeature(RandomSource pRandom, boolean pLargeHive)
+    {
+        if (pRandom.nextInt(10) == 0)
+        {
+            return pLargeHive ? TreeFeatures.FANCY_OAK_BEES_005 : TreeFeatures.FANCY_OAK;
+        }
+        else
+        {
+            return pLargeHive ? TreeFeatures.OAK_BEES_005 : TreeFeatures.OAK;
+        }
+    }
 }

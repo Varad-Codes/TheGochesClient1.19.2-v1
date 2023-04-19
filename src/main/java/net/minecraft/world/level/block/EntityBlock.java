@@ -10,17 +10,22 @@ import net.minecraft.world.level.block.entity.BlockEntityType;
 import net.minecraft.world.level.block.state.BlockState;
 import net.minecraft.world.level.gameevent.GameEventListener;
 
-public interface EntityBlock {
-   @Nullable
-   BlockEntity newBlockEntity(BlockPos p_153215_, BlockState p_153216_);
+public interface EntityBlock
+{
+    @Nullable
+    BlockEntity newBlockEntity(BlockPos pPos, BlockState pState);
 
-   @Nullable
-   default <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level p_153212_, BlockState p_153213_, BlockEntityType<T> p_153214_) {
-      return null;
-   }
+    @Nullable
 
-   @Nullable
-   default <T extends BlockEntity> GameEventListener getListener(ServerLevel p_221121_, T p_221122_) {
-      return null;
-   }
+default <T extends BlockEntity> BlockEntityTicker<T> getTicker(Level pLevel, BlockState pState, BlockEntityType<T> pBlockEntityType)
+    {
+        return null;
+    }
+
+    @Nullable
+
+default <T extends BlockEntity> GameEventListener getListener(ServerLevel pLevel, T pBlockEntity)
+    {
+        return null;
+    }
 }

@@ -6,6 +6,7 @@ import net.minecraft.commands.CommandSourceStack;
 import net.minecraft.nbt.CompoundTag;
 
 @FunctionalInterface
-public interface DataSource {
-   Stream<CompoundTag> getData(CommandSourceStack p_237326_) throws CommandSyntaxException;
+public interface DataSource
+{
+    Stream<CompoundTag> getData(CommandSourceStack p_237326_) throws CommandSyntaxException;
 }

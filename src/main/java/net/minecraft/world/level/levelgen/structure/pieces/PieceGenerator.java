@@ -8,9 +8,11 @@ import net.minecraft.world.level.levelgen.feature.configurations.FeatureConfigur
 import net.minecraft.world.level.levelgen.structure.templatesystem.StructureTemplateManager;
 
 @FunctionalInterface
-public interface PieceGenerator<C extends FeatureConfiguration> {
-   void generatePieces(StructurePiecesBuilder p_197326_, PieceGenerator.Context<C> p_197327_);
+public interface PieceGenerator<C extends FeatureConfiguration>
+{
+    void generatePieces(StructurePiecesBuilder p_197326_, PieceGenerator.Context<C> p_197327_);
 
-   public static record Context<C extends FeatureConfiguration>(C config, ChunkGenerator chunkGenerator, StructureTemplateManager structureTemplateManager, ChunkPos chunkPos, LevelHeightAccessor heightAccessor, WorldgenRandom random, long seed) {
-   }
+    public static record Context<C extends FeatureConfiguration>(C config, ChunkGenerator chunkGenerator, StructureTemplateManager structureTemplateManager, ChunkPos chunkPos, LevelHeightAccessor heightAccessor, WorldgenRandom random, long seed)
+    {
+    }
 }

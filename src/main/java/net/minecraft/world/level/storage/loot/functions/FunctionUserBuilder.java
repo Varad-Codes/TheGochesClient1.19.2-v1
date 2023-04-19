@@ -3,22 +3,26 @@ package net.minecraft.world.level.storage.loot.functions;
 import java.util.Arrays;
 import java.util.function.Function;
 
-public interface FunctionUserBuilder<T extends FunctionUserBuilder<T>> {
-   T apply(LootItemFunction.Builder p_230990_);
+public interface FunctionUserBuilder<T extends FunctionUserBuilder<T>>
+{
+    T apply(LootItemFunction.Builder pFunctionBuilder);
 
-   default <E> T apply(Iterable<E> p_230985_, Function<E, LootItemFunction.Builder> p_230986_) {
-      T t = this.unwrap();
+default <E> T apply(Iterable<E> p_230985_, Function<E, LootItemFunction.Builder> p_230986_)
+    {
+        T t = this.unwrap();
 
-      for(E e : p_230985_) {
-         t = t.apply(p_230986_.apply(e));
-      }
+        for (E e : p_230985_)
+        {
+            t = t.apply(p_230986_.apply(e));
+        }
 
-      return t;
-   }
+        return t;
+    }
 
-   default <E> T apply(E[] p_230988_, Function<E, LootItemFunction.Builder> p_230989_) {
-      return this.apply(Arrays.asList(p_230988_), p_230989_);
-   }
+default <E> T a(E[] p_230988_, Function<E, LootItemFunction.Builder> p_230989_)
+    {
+        return this.apply(Arrays.asList(p_230988_), p_230989_);
+    }
 
-   T unwrap();
+    T unwrap();
 }

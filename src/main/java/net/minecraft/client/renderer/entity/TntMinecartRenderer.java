@@ -8,40 +8,59 @@ import net.minecraft.client.renderer.texture.OverlayTexture;
 import net.minecraft.util.Mth;
 import net.minecraft.world.entity.vehicle.MinecartTNT;
 import net.minecraft.world.level.block.state.BlockState;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.optifine.Config;
+import net.optifine.shaders.Shaders;
 
-@OnlyIn(Dist.CLIENT)
-public class TntMinecartRenderer extends MinecartRenderer<MinecartTNT> {
-   private final BlockRenderDispatcher blockRenderer;
+public class TntMinecartRenderer extends MinecartRenderer<MinecartTNT>
+{
+    private final BlockRenderDispatcher blockRenderer;
 
-   public TntMinecartRenderer(EntityRendererProvider.Context p_174424_) {
-      super(p_174424_, ModelLayers.TNT_MINECART);
-      this.blockRenderer = p_174424_.getBlockRenderDispatcher();
-   }
+    public TntMinecartRenderer(EntityRendererProvider.Context p_174424_)
+    {
+        super(p_174424_, ModelLayers.TNT_MINECART);
+        this.blockRenderer = p_174424_.getBlockRenderDispatcher();
+    }
 
-   protected void renderMinecartContents(MinecartTNT p_116151_, float p_116152_, BlockState p_116153_, PoseStack p_116154_, MultiBufferSource p_116155_, int p_116156_) {
-      int i = p_116151_.getFuse();
-      if (i > -1 && (float)i - p_116152_ + 1.0F < 10.0F) {
-         float f = 1.0F - ((float)i - p_116152_ + 1.0F) / 10.0F;
-         f = Mth.clamp(f, 0.0F, 1.0F);
-         f *= f;
-         f *= f;
-         float f1 = 1.0F + f * 0.3F;
-         p_116154_.scale(f1, f1, f1);
-      }
+    protected void renderMinecartContents(MinecartTNT pEntity, float pPartialTicks, BlockState pState, PoseStack pMatrixStack, MultiBufferSource pBuffer, int pPackedLight)
+    {
+        int i = pEntity.getFuse();
 
-      renderWhiteSolidBlock(this.blockRenderer, p_116153_, p_116154_, p_116155_, p_116156_, i > -1 && i / 5 % 2 == 0);
-   }
+        if (i > -1 && (float)i - pPartialTicks + 1.0F < 10.0F)
+        {
+            float f = 1.0F - ((float)i - pPartialTicks + 1.0F) / 10.0F;
+            f = Mth.clamp(f, 0.0F, 1.0F);
+            f *= f;
+            f *= f;
+            float f1 = 1.0F + f * 0.3F;
+            pMatrixStack.scale(f1, f1, f1);
+        }
 
-   public static void renderWhiteSolidBlock(BlockRenderDispatcher p_234662_, BlockState p_234663_, PoseStack p_234664_, MultiBufferSource p_234665_, int p_234666_, boolean p_234667_) {
-      int i;
-      if (p_234667_) {
-         i = OverlayTexture.pack(OverlayTexture.u(1.0F), 10);
-      } else {
-         i = OverlayTexture.NO_OVERLAY;
-      }
+        renderWhiteSolidBlock(this.blockRenderer, pState, pMatrixStack, pBuffer, pPackedLight, i > -1 && i / 5 % 2 == 0);
+    }
 
-      p_234662_.renderSingleBlock(p_234663_, p_234664_, p_234665_, p_234666_, i);
-   }
+    public static void renderWhiteSolidBlock(BlockRenderDispatcher p_234662_, BlockState p_234663_, PoseStack p_234664_, MultiBufferSource p_234665_, int p_234666_, boolean p_234667_)
+    {
+        int i;
+
+        if (p_234667_)
+        {
+            i = OverlayTexture.pack(OverlayTexture.u(1.0F), 10);
+        }
+        else
+        {
+            i = OverlayTexture.NO_OVERLAY;
+        }
+
+        if (Config.isShaders() && p_234667_)
+        {
+            Shaders.setEntityColor(1.0F, 1.0F, 1.0F, 0.5F);
+        }
+
+        p_234662_.renderSingleBlock(p_234663_, p_234664_, p_234665_, p_234666_, i);
+
+        if (Config.isShaders())
+        {
+            Shaders.setEntityColor(0.0F, 0.0F, 0.0F, 0.0F);
+        }
+    }
 }

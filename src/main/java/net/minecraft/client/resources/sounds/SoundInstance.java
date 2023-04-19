@@ -6,53 +6,54 @@ import net.minecraft.client.sounds.WeighedSoundEvents;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.sounds.SoundSource;
 import net.minecraft.util.RandomSource;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
-public interface SoundInstance {
-   ResourceLocation getLocation();
+public interface SoundInstance
+{
+    ResourceLocation getLocation();
 
-   @Nullable
-   WeighedSoundEvents resolve(SoundManager p_119841_);
+    @Nullable
+    WeighedSoundEvents resolve(SoundManager pManager);
 
-   Sound getSound();
+    Sound getSound();
 
-   SoundSource getSource();
+    SoundSource getSource();
 
-   boolean isLooping();
+    boolean isLooping();
 
-   boolean isRelative();
+    boolean isRelative();
 
-   int getDelay();
+    int getDelay();
 
-   float getVolume();
+    float getVolume();
 
-   float getPitch();
+    float getPitch();
 
-   double getX();
+    double getX();
 
-   double getY();
+    double getY();
 
-   double getZ();
+    double getZ();
 
-   SoundInstance.Attenuation getAttenuation();
+    SoundInstance.Attenuation getAttenuation();
 
-   default boolean canStartSilent() {
-      return false;
-   }
+default boolean canStartSilent()
+    {
+        return false;
+    }
 
-   default boolean canPlaySound() {
-      return true;
-   }
+default boolean canPlaySound()
+    {
+        return true;
+    }
 
-   static RandomSource createUnseededRandom() {
-      return RandomSource.create();
-   }
+    static RandomSource createUnseededRandom()
+    {
+        return RandomSource.create();
+    }
 
-   @OnlyIn(Dist.CLIENT)
-   public static enum Attenuation {
-      NONE,
-      LINEAR;
-   }
+    public static enum Attenuation
+    {
+        NONE,
+        LINEAR;
+    }
 }

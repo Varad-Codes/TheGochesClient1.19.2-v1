@@ -12,136 +12,188 @@ import net.minecraft.client.resources.metadata.texture.TextureMetadataSection;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
+import net.optifine.Config;
+import net.optifine.EmissiveTextures;
+import net.optifine.shaders.ShadersTex;
 import org.slf4j.Logger;
 
-@OnlyIn(Dist.CLIENT)
-public class SimpleTexture extends AbstractTexture {
-   static final Logger LOGGER = LogUtils.getLogger();
-   protected final ResourceLocation location;
+public class SimpleTexture extends AbstractTexture
+{
+    static final Logger LOGGER = LogUtils.getLogger();
+    protected final ResourceLocation location;
+    private ResourceManager resourceManager;
+    public ResourceLocation locationEmissive;
+    public boolean isEmissive;
 
-   public SimpleTexture(ResourceLocation p_118133_) {
-      this.location = p_118133_;
-   }
+    public SimpleTexture(ResourceLocation pLocation)
+    {
+        this.location = pLocation;
+    }
 
-   public void load(ResourceManager p_118135_) throws IOException {
-      SimpleTexture.TextureImage simpletexture$textureimage = this.getTextureImage(p_118135_);
-      simpletexture$textureimage.throwIfError();
-      TextureMetadataSection texturemetadatasection = simpletexture$textureimage.getTextureMetadata();
-      boolean flag;
-      boolean flag1;
-      if (texturemetadatasection != null) {
-         flag = texturemetadatasection.isBlur();
-         flag1 = texturemetadatasection.isClamp();
-      } else {
-         flag = false;
-         flag1 = false;
-      }
+    public void load(ResourceManager pResourceManager) throws IOException
+    {
+        this.resourceManager = pResourceManager;
+        SimpleTexture.TextureImage simpletexture$textureimage = this.getTextureImage(pResourceManager);
+        simpletexture$textureimage.throwIfError();
+        TextureMetadataSection texturemetadatasection = simpletexture$textureimage.getTextureMetadata();
+        boolean flag;
+        boolean flag1;
 
-      NativeImage nativeimage = simpletexture$textureimage.getImage();
-      if (!RenderSystem.isOnRenderThreadOrInit()) {
-         RenderSystem.recordRenderCall(() -> {
+        if (texturemetadatasection != null)
+        {
+            flag = texturemetadatasection.isBlur();
+            flag1 = texturemetadatasection.isClamp();
+        }
+        else
+        {
+            flag = false;
+            flag1 = false;
+        }
+
+        NativeImage nativeimage = simpletexture$textureimage.getImage();
+
+        if (!RenderSystem.isOnRenderThreadOrInit())
+        {
+            RenderSystem.recordRenderCall(() ->
+            {
+                this.doLoad(nativeimage, flag, flag1);
+            });
+        }
+        else
+        {
             this.doLoad(nativeimage, flag, flag1);
-         });
-      } else {
-         this.doLoad(nativeimage, flag, flag1);
-      }
+        }
+    }
 
-   }
+    private void doLoad(NativeImage pImage, boolean pBlur, boolean pClamp)
+    {
+        TextureUtil.prepareImage(this.getId(), 0, pImage.getWidth(), pImage.getHeight());
+        pImage.upload(0, 0, 0, 0, 0, pImage.getWidth(), pImage.getHeight(), pBlur, pClamp, false, true);
 
-   private void doLoad(NativeImage p_118137_, boolean p_118138_, boolean p_118139_) {
-      TextureUtil.prepareImage(this.getId(), 0, p_118137_.getWidth(), p_118137_.getHeight());
-      p_118137_.upload(0, 0, 0, 0, 0, p_118137_.getWidth(), p_118137_.getHeight(), p_118138_, p_118139_, false, true);
-   }
+        if (Config.isShaders())
+        {
+            ShadersTex.loadSimpleTextureNS(this.getId(), pImage, pBlur, pClamp, this.resourceManager, this.location, this.getMultiTexID());
+        }
 
-   protected SimpleTexture.TextureImage getTextureImage(ResourceManager p_118140_) {
-      return SimpleTexture.TextureImage.load(p_118140_, this.location);
-   }
+        if (EmissiveTextures.isActive())
+        {
+            EmissiveTextures.loadTexture(this.location, this);
+        }
+    }
 
-   @OnlyIn(Dist.CLIENT)
-   protected static class TextureImage implements Closeable {
-      @Nullable
-      private final TextureMetadataSection metadata;
-      @Nullable
-      private final NativeImage image;
-      @Nullable
-      private final IOException exception;
+    protected SimpleTexture.TextureImage getTextureImage(ResourceManager pResourceManager)
+    {
+        return SimpleTexture.TextureImage.load(pResourceManager, this.location);
+    }
 
-      public TextureImage(IOException p_118153_) {
-         this.exception = p_118153_;
-         this.metadata = null;
-         this.image = null;
-      }
+    protected static class TextureImage implements Closeable
+    {
+        @Nullable
+        private final TextureMetadataSection metadata;
+        @Nullable
+        private final NativeImage image;
+        @Nullable
+        private final IOException exception;
 
-      public TextureImage(@Nullable TextureMetadataSection p_118150_, NativeImage p_118151_) {
-         this.exception = null;
-         this.metadata = p_118150_;
-         this.image = p_118151_;
-      }
+        public TextureImage(IOException pException)
+        {
+            this.exception = pException;
+            this.metadata = null;
+            this.image = null;
+        }
 
-      public static SimpleTexture.TextureImage load(ResourceManager p_118156_, ResourceLocation p_118157_) {
-         try {
-            Resource resource = p_118156_.getResourceOrThrow(p_118157_);
-            InputStream inputstream = resource.open();
+        public TextureImage(@Nullable TextureMetadataSection pMetadata, NativeImage pImage)
+        {
+            this.exception = null;
+            this.metadata = pMetadata;
+            this.image = pImage;
+        }
 
-            NativeImage nativeimage;
-            try {
-               nativeimage = NativeImage.read(inputstream);
-            } catch (Throwable throwable1) {
-               if (inputstream != null) {
-                  try {
-                     inputstream.close();
-                  } catch (Throwable throwable) {
-                     throwable1.addSuppressed(throwable);
-                  }
-               }
+        public static SimpleTexture.TextureImage load(ResourceManager pResourceManager, ResourceLocation pLocation)
+        {
+            try
+            {
+                Resource resource = pResourceManager.getResourceOrThrow(pLocation);
+                InputStream inputstream = resource.open();
+                NativeImage nativeimage;
 
-               throw throwable1;
+                try
+                {
+                    nativeimage = NativeImage.read(inputstream);
+                }
+                catch (Throwable throwable1)
+                {
+                    if (inputstream != null)
+                    {
+                        try
+                        {
+                            inputstream.close();
+                        }
+                        catch (Throwable throwable)
+                        {
+                            throwable1.addSuppressed(throwable);
+                        }
+                    }
+
+                    throw throwable1;
+                }
+
+                if (inputstream != null)
+                {
+                    inputstream.close();
+                }
+
+                TextureMetadataSection texturemetadatasection = null;
+
+                try
+                {
+                    texturemetadatasection = resource.metadata().getSection(TextureMetadataSection.SERIALIZER).orElse((TextureMetadataSection)null);
+                }
+                catch (RuntimeException runtimeexception)
+                {
+                    SimpleTexture.LOGGER.warn("Failed reading metadata of: {}", pLocation, runtimeexception);
+                }
+
+                return new SimpleTexture.TextureImage(texturemetadatasection, nativeimage);
             }
-
-            if (inputstream != null) {
-               inputstream.close();
+            catch (IOException ioexception1)
+            {
+                return new SimpleTexture.TextureImage(ioexception1);
             }
+        }
 
-            TextureMetadataSection texturemetadatasection = null;
+        @Nullable
+        public TextureMetadataSection getTextureMetadata()
+        {
+            return this.metadata;
+        }
 
-            try {
-               texturemetadatasection = resource.metadata().getSection(TextureMetadataSection.SERIALIZER).orElse((TextureMetadataSection)null);
-            } catch (RuntimeException runtimeexception) {
-               SimpleTexture.LOGGER.warn("Failed reading metadata of: {}", p_118157_, runtimeexception);
+        public NativeImage getImage() throws IOException
+        {
+            if (this.exception != null)
+            {
+                throw this.exception;
             }
+            else
+            {
+                return this.image;
+            }
+        }
 
-            return new SimpleTexture.TextureImage(texturemetadatasection, nativeimage);
-         } catch (IOException ioexception) {
-            return new SimpleTexture.TextureImage(ioexception);
-         }
-      }
+        public void close()
+        {
+            if (this.image != null)
+            {
+                this.image.close();
+            }
+        }
 
-      @Nullable
-      public TextureMetadataSection getTextureMetadata() {
-         return this.metadata;
-      }
-
-      public NativeImage getImage() throws IOException {
-         if (this.exception != null) {
-            throw this.exception;
-         } else {
-            return this.image;
-         }
-      }
-
-      public void close() {
-         if (this.image != null) {
-            this.image.close();
-         }
-
-      }
-
-      public void throwIfError() throws IOException {
-         if (this.exception != null) {
-            throw this.exception;
-         }
-      }
-   }
+        public void throwIfError() throws IOException
+        {
+            if (this.exception != null)
+            {
+                throw this.exception;
+            }
+        }
+    }
 }

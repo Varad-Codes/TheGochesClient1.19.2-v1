@@ -23,170 +23,224 @@ import net.minecraft.world.level.dimension.DimensionType;
 import net.minecraft.world.level.dimension.LevelStem;
 import org.apache.commons.lang3.StringUtils;
 
-public class WorldGenSettings {
-   public static final Codec<WorldGenSettings> CODEC = RecordCodecBuilder.<WorldGenSettings>create((p_64626_) -> {
-      return p_64626_.group(Codec.LONG.fieldOf("seed").stable().forGetter(WorldGenSettings::seed), Codec.BOOL.fieldOf("generate_features").orElse(true).stable().forGetter(WorldGenSettings::generateStructures), Codec.BOOL.fieldOf("bonus_chest").orElse(false).stable().forGetter(WorldGenSettings::generateBonusChest), RegistryCodecs.dataPackAwareCodec(Registry.LEVEL_STEM_REGISTRY, Lifecycle.stable(), LevelStem.CODEC).xmap(LevelStem::sortMap, Function.identity()).fieldOf("dimensions").forGetter(WorldGenSettings::dimensions), Codec.STRING.optionalFieldOf("legacy_custom_options").stable().forGetter((p_158959_) -> {
-         return p_158959_.legacyCustomOptions;
-      })).apply(p_64626_, p_64626_.stable(WorldGenSettings::new));
-   }).comapFlatMap(WorldGenSettings::guardExperimental, Function.identity());
-   private final long seed;
-   private final boolean generateStructures;
-   private final boolean generateBonusChest;
-   private final Registry<LevelStem> dimensions;
-   private final Optional<String> legacyCustomOptions;
+public class WorldGenSettings
+{
+    public static final Codec<WorldGenSettings> CODEC = RecordCodecBuilder.<WorldGenSettings>create((p_64626_) ->
+    {
+        return p_64626_.group(Codec.LONG.fieldOf("seed").stable().forGetter(WorldGenSettings::seed), Codec.BOOL.fieldOf("generate_features").orElse(true).stable().forGetter(WorldGenSettings::generateStructures), Codec.BOOL.fieldOf("bonus_chest").orElse(false).stable().forGetter(WorldGenSettings::generateBonusChest), RegistryCodecs.dataPackAwareCodec(Registry.LEVEL_STEM_REGISTRY, Lifecycle.stable(), LevelStem.CODEC).xmap(LevelStem::sortMap, Function.identity()).fieldOf("dimensions").forGetter(WorldGenSettings::dimensions), Codec.STRING.optionalFieldOf("legacy_custom_options").stable().forGetter((p_158959_) -> {
+            return p_158959_.legacyCustomOptions;
+        })).apply(p_64626_, p_64626_.stable(WorldGenSettings::new));
+    }).comapFlatMap(WorldGenSettings::guardExperimental, Function.identity());
+    private final long seed;
+    private final boolean generateStructures;
+    private final boolean generateBonusChest;
+    private final Registry<LevelStem> dimensions;
+    private final Optional<String> legacyCustomOptions;
 
-   private DataResult<WorldGenSettings> guardExperimental() {
-      LevelStem levelstem = this.dimensions.get(LevelStem.OVERWORLD);
-      if (levelstem == null) {
-         return DataResult.error("Overworld settings missing");
-      } else {
-         return this.stable() ? DataResult.success(this, Lifecycle.stable()) : DataResult.success(this);
-      }
-   }
+    private DataResult<WorldGenSettings> guardExperimental()
+    {
+        LevelStem levelstem = this.dimensions.get(LevelStem.OVERWORLD);
 
-   private boolean stable() {
-      return LevelStem.stable(this.dimensions);
-   }
+        if (levelstem == null)
+        {
+            return DataResult.error("Overworld settings missing");
+        }
+        else
+        {
+            return this.stable() ? DataResult.success(this, Lifecycle.stable()) : DataResult.success(this);
+        }
+    }
 
-   public WorldGenSettings(long p_204633_, boolean p_204634_, boolean p_204635_, Registry<LevelStem> p_204636_) {
-      this(p_204633_, p_204634_, p_204635_, p_204636_, Optional.empty());
-      LevelStem levelstem = p_204636_.get(LevelStem.OVERWORLD);
-      if (levelstem == null) {
-         throw new IllegalStateException("Overworld settings missing");
-      }
-   }
+    private boolean stable()
+    {
+        return LevelStem.stable(this.dimensions);
+    }
 
-   private WorldGenSettings(long p_204638_, boolean p_204639_, boolean p_204640_, Registry<LevelStem> p_204641_, Optional<String> p_204642_) {
-      this.seed = p_204638_;
-      this.generateStructures = p_204639_;
-      this.generateBonusChest = p_204640_;
-      this.dimensions = p_204641_;
-      this.legacyCustomOptions = p_204642_;
-   }
+    public WorldGenSettings(long pSeed, boolean p_204634_, boolean pGenerateFeatures, Registry<LevelStem> pGenerateBonusChest)
+    {
+        this(pSeed, p_204634_, pGenerateFeatures, pGenerateBonusChest, Optional.empty());
+        LevelStem levelstem = pGenerateBonusChest.get(LevelStem.OVERWORLD);
 
-   public long seed() {
-      return this.seed;
-   }
+        if (levelstem == null)
+        {
+            throw new IllegalStateException("Overworld settings missing");
+        }
+    }
 
-   public boolean generateStructures() {
-      return this.generateStructures;
-   }
+    private WorldGenSettings(long p_204638_, boolean p_204639_, boolean p_204640_, Registry<LevelStem> p_204641_, Optional<String> p_204642_)
+    {
+        this.seed = p_204638_;
+        this.generateStructures = p_204639_;
+        this.generateBonusChest = p_204640_;
+        this.dimensions = p_204641_;
+        this.legacyCustomOptions = p_204642_;
+    }
 
-   public boolean generateBonusChest() {
-      return this.generateBonusChest;
-   }
+    public long seed()
+    {
+        return this.seed;
+    }
 
-   public static WorldGenSettings replaceOverworldGenerator(RegistryAccess p_224674_, WorldGenSettings p_224675_, ChunkGenerator p_224676_) {
-      Registry<DimensionType> registry = p_224674_.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY);
-      Registry<LevelStem> registry1 = withOverworld(registry, p_224675_.dimensions(), p_224676_);
-      return new WorldGenSettings(p_224675_.seed(), p_224675_.generateStructures(), p_224675_.generateBonusChest(), registry1);
-   }
+    public boolean generateStructures()
+    {
+        return this.generateStructures;
+    }
 
-   public static Registry<LevelStem> withOverworld(Registry<DimensionType> p_204650_, Registry<LevelStem> p_204651_, ChunkGenerator p_204652_) {
-      LevelStem levelstem = p_204651_.get(LevelStem.OVERWORLD);
-      Holder<DimensionType> holder = levelstem == null ? p_204650_.getOrCreateHolderOrThrow(BuiltinDimensionTypes.OVERWORLD) : levelstem.typeHolder();
-      return withOverworld(p_204651_, holder, p_204652_);
-   }
+    public boolean generateBonusChest()
+    {
+        return this.generateBonusChest;
+    }
 
-   public static Registry<LevelStem> withOverworld(Registry<LevelStem> p_204646_, Holder<DimensionType> p_204647_, ChunkGenerator p_204648_) {
-      WritableRegistry<LevelStem> writableregistry = new MappedRegistry<>(Registry.LEVEL_STEM_REGISTRY, Lifecycle.experimental(), (Function<LevelStem, Holder.Reference<LevelStem>>)null);
-      writableregistry.register(LevelStem.OVERWORLD, new LevelStem(p_204647_, p_204648_), Lifecycle.stable());
+    public static WorldGenSettings replaceOverworldGenerator(RegistryAccess p_224674_, WorldGenSettings p_224675_, ChunkGenerator p_224676_)
+    {
+        Registry<DimensionType> registry = p_224674_.registryOrThrow(Registry.DIMENSION_TYPE_REGISTRY);
+        Registry<LevelStem> registry1 = withOverworld(registry, p_224675_.dimensions(), p_224676_);
+        return new WorldGenSettings(p_224675_.seed(), p_224675_.generateStructures(), p_224675_.generateBonusChest(), registry1);
+    }
 
-      for(Map.Entry<ResourceKey<LevelStem>, LevelStem> entry : p_204646_.entrySet()) {
-         ResourceKey<LevelStem> resourcekey = entry.getKey();
-         if (resourcekey != LevelStem.OVERWORLD) {
-            writableregistry.register(resourcekey, entry.getValue(), p_204646_.lifecycle(entry.getValue()));
-         }
-      }
+    public static Registry<LevelStem> withOverworld(Registry<DimensionType> pDimensions, Registry<LevelStem> pDimensionTypes, ChunkGenerator pChunkGenerator)
+    {
+        LevelStem levelstem = pDimensionTypes.get(LevelStem.OVERWORLD);
+        Holder<DimensionType> holder = levelstem == null ? pDimensions.getOrCreateHolderOrThrow(BuiltinDimensionTypes.OVERWORLD) : levelstem.typeHolder();
+        return withOverworld(pDimensionTypes, holder, pChunkGenerator);
+    }
 
-      return writableregistry;
-   }
+    public static Registry<LevelStem> withOverworld(Registry<LevelStem> pDimensions, Holder<DimensionType> pDimensionTypes, ChunkGenerator pChunkGenerator)
+    {
+        WritableRegistry<LevelStem> writableregistry = new MappedRegistry<>(Registry.LEVEL_STEM_REGISTRY, Lifecycle.experimental(), (Function<LevelStem, Holder.Reference<LevelStem>>)null);
+        writableregistry.register(LevelStem.OVERWORLD, new LevelStem(pDimensionTypes, pChunkGenerator), Lifecycle.stable());
 
-   public Registry<LevelStem> dimensions() {
-      return this.dimensions;
-   }
-
-   public ChunkGenerator overworld() {
-      LevelStem levelstem = this.dimensions.get(LevelStem.OVERWORLD);
-      if (levelstem == null) {
-         throw new IllegalStateException("Overworld settings missing");
-      } else {
-         return levelstem.generator();
-      }
-   }
-
-   public ImmutableSet<ResourceKey<Level>> levels() {
-      return this.dimensions().entrySet().stream().map(Map.Entry::getKey).map(WorldGenSettings::levelStemToLevel).collect(ImmutableSet.toImmutableSet());
-   }
-
-   public static ResourceKey<Level> levelStemToLevel(ResourceKey<LevelStem> p_190049_) {
-      return ResourceKey.create(Registry.DIMENSION_REGISTRY, p_190049_.location());
-   }
-
-   public static ResourceKey<LevelStem> levelToLevelStem(ResourceKey<Level> p_190053_) {
-      return ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, p_190053_.location());
-   }
-
-   public boolean isDebug() {
-      return this.overworld() instanceof DebugLevelSource;
-   }
-
-   public boolean isFlatWorld() {
-      return this.overworld() instanceof FlatLevelSource;
-   }
-
-   public boolean isOldCustomizedWorld() {
-      return this.legacyCustomOptions.isPresent();
-   }
-
-   public WorldGenSettings withBonusChest() {
-      return new WorldGenSettings(this.seed, this.generateStructures, true, this.dimensions, this.legacyCustomOptions);
-   }
-
-   public WorldGenSettings withStructuresToggled() {
-      return new WorldGenSettings(this.seed, !this.generateStructures, this.generateBonusChest, this.dimensions);
-   }
-
-   public WorldGenSettings withBonusChestToggled() {
-      return new WorldGenSettings(this.seed, this.generateStructures, !this.generateBonusChest, this.dimensions);
-   }
-
-   public WorldGenSettings withSeed(boolean p_64655_, OptionalLong p_64656_) {
-      long i = p_64656_.orElse(this.seed);
-      Registry<LevelStem> registry;
-      if (p_64656_.isPresent()) {
-         WritableRegistry<LevelStem> writableregistry = new MappedRegistry<>(Registry.LEVEL_STEM_REGISTRY, Lifecycle.experimental(), (Function<LevelStem, Holder.Reference<LevelStem>>)null);
-
-         for(Map.Entry<ResourceKey<LevelStem>, LevelStem> entry : this.dimensions.entrySet()) {
+        for (Map.Entry<ResourceKey<LevelStem>, LevelStem> entry : pDimensions.entrySet())
+        {
             ResourceKey<LevelStem> resourcekey = entry.getKey();
-            writableregistry.register(resourcekey, new LevelStem(entry.getValue().typeHolder(), entry.getValue().generator()), this.dimensions.lifecycle(entry.getValue()));
-         }
 
-         registry = writableregistry;
-      } else {
-         registry = this.dimensions;
-      }
+            if (resourcekey != LevelStem.OVERWORLD)
+            {
+                writableregistry.register(resourcekey, entry.getValue(), pDimensions.lifecycle(entry.getValue()));
+            }
+        }
 
-      WorldGenSettings worldgensettings;
-      if (this.isDebug()) {
-         worldgensettings = new WorldGenSettings(i, false, false, registry);
-      } else {
-         worldgensettings = new WorldGenSettings(i, this.generateStructures(), this.generateBonusChest() && !p_64655_, registry);
-      }
+        return writableregistry;
+    }
 
-      return worldgensettings;
-   }
+    public Registry<LevelStem> dimensions()
+    {
+        return this.dimensions;
+    }
 
-   public static OptionalLong parseSeed(String p_202193_) {
-      p_202193_ = p_202193_.trim();
-      if (StringUtils.isEmpty(p_202193_)) {
-         return OptionalLong.empty();
-      } else {
-         try {
-            return OptionalLong.of(Long.parseLong(p_202193_));
-         } catch (NumberFormatException numberformatexception) {
-            return OptionalLong.of((long)p_202193_.hashCode());
-         }
-      }
-   }
+    public ChunkGenerator overworld()
+    {
+        LevelStem levelstem = this.dimensions.get(LevelStem.OVERWORLD);
+
+        if (levelstem == null)
+        {
+            throw new IllegalStateException("Overworld settings missing");
+        }
+        else
+        {
+            return levelstem.generator();
+        }
+    }
+
+    public ImmutableSet<ResourceKey<Level>> levels()
+    {
+        return this.dimensions().entrySet().stream().map(Map.Entry::getKey).map(WorldGenSettings::levelStemToLevel).collect(ImmutableSet.toImmutableSet());
+    }
+
+    public static ResourceKey<Level> levelStemToLevel(ResourceKey<LevelStem> p_190049_)
+    {
+        return ResourceKey.create(Registry.DIMENSION_REGISTRY, p_190049_.location());
+    }
+
+    public static ResourceKey<LevelStem> levelToLevelStem(ResourceKey<Level> p_190053_)
+    {
+        return ResourceKey.create(Registry.LEVEL_STEM_REGISTRY, p_190053_.location());
+    }
+
+    public boolean isDebug()
+    {
+        return this.overworld() instanceof DebugLevelSource;
+    }
+
+    public boolean isFlatWorld()
+    {
+        return this.overworld() instanceof FlatLevelSource;
+    }
+
+    public boolean isOldCustomizedWorld()
+    {
+        return this.legacyCustomOptions.isPresent();
+    }
+
+    public WorldGenSettings withBonusChest()
+    {
+        return new WorldGenSettings(this.seed, this.generateStructures, true, this.dimensions, this.legacyCustomOptions);
+    }
+
+    public WorldGenSettings withStructuresToggled()
+    {
+        return new WorldGenSettings(this.seed, !this.generateStructures, this.generateBonusChest, this.dimensions);
+    }
+
+    public WorldGenSettings withBonusChestToggled()
+    {
+        return new WorldGenSettings(this.seed, this.generateStructures, !this.generateBonusChest, this.dimensions);
+    }
+
+    public WorldGenSettings withSeed(boolean pHardcore, OptionalLong pLevelSeed)
+    {
+        long i = pLevelSeed.orElse(this.seed);
+        Registry<LevelStem> registry;
+
+        if (pLevelSeed.isPresent())
+        {
+            WritableRegistry<LevelStem> writableregistry = new MappedRegistry<>(Registry.LEVEL_STEM_REGISTRY, Lifecycle.experimental(), (Function<LevelStem, Holder.Reference<LevelStem>>)null);
+
+            for (Map.Entry<ResourceKey<LevelStem>, LevelStem> entry : this.dimensions.entrySet())
+            {
+                ResourceKey<LevelStem> resourcekey = entry.getKey();
+                writableregistry.register(resourcekey, new LevelStem(entry.getValue().typeHolder(), entry.getValue().generator()), this.dimensions.lifecycle(entry.getValue()));
+            }
+
+            registry = writableregistry;
+        }
+        else
+        {
+            registry = this.dimensions;
+        }
+
+        WorldGenSettings worldgensettings;
+
+        if (this.isDebug())
+        {
+            worldgensettings = new WorldGenSettings(i, false, false, registry);
+        }
+        else
+        {
+            worldgensettings = new WorldGenSettings(i, this.generateStructures(), this.generateBonusChest() && !pHardcore, registry);
+        }
+
+        return worldgensettings;
+    }
+
+    public static OptionalLong parseSeed(String p_202193_)
+    {
+        p_202193_ = p_202193_.trim();
+
+        if (StringUtils.isEmpty(p_202193_))
+        {
+            return OptionalLong.empty();
+        }
+        else
+        {
+            try
+            {
+                return OptionalLong.of(Long.parseLong(p_202193_));
+            }
+            catch (NumberFormatException numberformatexception)
+            {
+                return OptionalLong.of((long)p_202193_.hashCode());
+            }
+        }
+    }
 }

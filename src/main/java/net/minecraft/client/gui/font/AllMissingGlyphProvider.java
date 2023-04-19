@@ -6,17 +6,17 @@ import it.unimi.dsi.fastutil.ints.IntSet;
 import it.unimi.dsi.fastutil.ints.IntSets;
 import javax.annotation.Nullable;
 import net.minecraft.client.gui.font.glyphs.SpecialGlyphs;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
-public class AllMissingGlyphProvider implements GlyphProvider {
-   @Nullable
-   public GlyphInfo getGlyph(int p_232553_) {
-      return SpecialGlyphs.MISSING;
-   }
+public class AllMissingGlyphProvider implements GlyphProvider
+{
+    @Nullable
+    public GlyphInfo getGlyph(int pCharacter)
+    {
+        return SpecialGlyphs.MISSING;
+    }
 
-   public IntSet getSupportedGlyphs() {
-      return IntSets.EMPTY_SET;
-   }
+    public IntSet getSupportedGlyphs()
+    {
+        return IntSets.EMPTY_SET;
+    }
 }

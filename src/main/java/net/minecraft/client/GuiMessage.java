@@ -1,15 +1,45 @@
 package net.minecraft.client;
 
-import javax.annotation.Nullable;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.MessageSignature;
 import net.minecraft.util.FormattedCharSequence;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.api.distmarker.OnlyIn;
 
-@OnlyIn(Dist.CLIENT)
-public record GuiMessage(int addedTime, Component content, @Nullable MessageSignature headerSignature, @Nullable GuiMessageTag tag) {
-   @OnlyIn(Dist.CLIENT)
-   public static record Line(int addedTime, FormattedCharSequence content, @Nullable GuiMessageTag tag, boolean endOfEntry) {
-   }
+public record GuiMessage(int addedTime, Component content, MessageSignature headerSignature, GuiMessageTag tag)
+{
+    public int addedTime()
+    {
+        return this.addedTime;
+    }
+    public Component content()
+    {
+        return this.content;
+    }
+    public MessageSignature headerSignature()
+    {
+        return this.headerSignature;
+    }
+    public GuiMessageTag tag()
+    {
+        return this.tag;
+    }
+    public static record Line(int addedTime, FormattedCharSequence content, GuiMessageTag tag, boolean endOfEntry)
+    {
+
+        public int addedTime()
+        {
+            return this.addedTime;
+        }
+        public FormattedCharSequence content()
+        {
+            return this.content;
+        }
+        public GuiMessageTag tag()
+        {
+            return this.tag;
+        }
+        public boolean endOfEntry()
+        {
+            return this.endOfEntry;
+        }
+    }
 }

@@ -17,99 +17,153 @@ import net.minecraft.world.level.NaturalSpawner;
 import net.minecraft.world.level.biome.Biome;
 import net.minecraft.world.level.block.state.BlockState;
 
-public class PatrolSpawner implements CustomSpawner {
-   private int nextTick;
+public class PatrolSpawner implements CustomSpawner
+{
+    private int nextTick;
 
-   public int tick(ServerLevel p_64570_, boolean p_64571_, boolean p_64572_) {
-      if (!p_64571_) {
-         return 0;
-      } else if (!p_64570_.getGameRules().getBoolean(GameRules.RULE_DO_PATROL_SPAWNING)) {
-         return 0;
-      } else {
-         RandomSource randomsource = p_64570_.random;
-         --this.nextTick;
-         if (this.nextTick > 0) {
+    public int tick(ServerLevel pLevel, boolean pSpawnEnemies, boolean pSpawnFriendlies)
+    {
+        if (!pSpawnEnemies)
+        {
             return 0;
-         } else {
-            this.nextTick += 12000 + randomsource.nextInt(1200);
-            long i = p_64570_.getDayTime() / 24000L;
-            if (i >= 5L && p_64570_.isDay()) {
-               if (randomsource.nextInt(5) != 0) {
-                  return 0;
-               } else {
-                  int j = p_64570_.players().size();
-                  if (j < 1) {
-                     return 0;
-                  } else {
-                     Player player = p_64570_.players().get(randomsource.nextInt(j));
-                     if (player.isSpectator()) {
+        }
+        else if (!pLevel.getGameRules().getBoolean(GameRules.RULE_DO_PATROL_SPAWNING))
+        {
+            return 0;
+        }
+        else
+        {
+            RandomSource randomsource = pLevel.random;
+            --this.nextTick;
+
+            if (this.nextTick > 0)
+            {
+                return 0;
+            }
+            else
+            {
+                this.nextTick += 12000 + randomsource.nextInt(1200);
+                long i = pLevel.getDayTime() / 24000L;
+
+                if (i >= 5L && pLevel.isDay())
+                {
+                    if (randomsource.nextInt(5) != 0)
+                    {
                         return 0;
-                     } else if (p_64570_.isCloseToVillage(player.blockPosition(), 2)) {
-                        return 0;
-                     } else {
-                        int k = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
-                        int l = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
-                        BlockPos.MutableBlockPos blockpos$mutableblockpos = player.blockPosition().mutable().move(k, 0, l);
-                        int i1 = 10;
-                        if (!p_64570_.hasChunksAt(blockpos$mutableblockpos.getX() - 10, blockpos$mutableblockpos.getZ() - 10, blockpos$mutableblockpos.getX() + 10, blockpos$mutableblockpos.getZ() + 10)) {
-                           return 0;
-                        } else {
-                           Holder<Biome> holder = p_64570_.getBiome(blockpos$mutableblockpos);
-                           if (holder.is(BiomeTags.WITHOUT_PATROL_SPAWNS)) {
-                              return 0;
-                           } else {
-                              int j1 = 0;
-                              int k1 = (int)Math.ceil((double)p_64570_.getCurrentDifficultyAt(blockpos$mutableblockpos).getEffectiveDifficulty()) + 1;
+                    }
+                    else
+                    {
+                        int j = pLevel.players().size();
 
-                              for(int l1 = 0; l1 < k1; ++l1) {
-                                 ++j1;
-                                 blockpos$mutableblockpos.setY(p_64570_.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, blockpos$mutableblockpos).getY());
-                                 if (l1 == 0) {
-                                    if (!this.spawnPatrolMember(p_64570_, blockpos$mutableblockpos, randomsource, true)) {
-                                       break;
-                                    }
-                                 } else {
-                                    this.spawnPatrolMember(p_64570_, blockpos$mutableblockpos, randomsource, false);
-                                 }
-
-                                 blockpos$mutableblockpos.setX(blockpos$mutableblockpos.getX() + randomsource.nextInt(5) - randomsource.nextInt(5));
-                                 blockpos$mutableblockpos.setZ(blockpos$mutableblockpos.getZ() + randomsource.nextInt(5) - randomsource.nextInt(5));
-                              }
-
-                              return j1;
-                           }
+                        if (j < 1)
+                        {
+                            return 0;
                         }
-                     }
-                  }
-               }
-            } else {
-               return 0;
-            }
-         }
-      }
-   }
+                        else
+                        {
+                            Player player = pLevel.players().get(randomsource.nextInt(j));
 
-   private boolean spawnPatrolMember(ServerLevel p_224533_, BlockPos p_224534_, RandomSource p_224535_, boolean p_224536_) {
-      BlockState blockstate = p_224533_.getBlockState(p_224534_);
-      if (!NaturalSpawner.isValidEmptySpawnBlock(p_224533_, p_224534_, blockstate, blockstate.getFluidState(), EntityType.PILLAGER)) {
-         return false;
-      } else if (!PatrollingMonster.checkPatrollingMonsterSpawnRules(EntityType.PILLAGER, p_224533_, MobSpawnType.PATROL, p_224534_, p_224535_)) {
-         return false;
-      } else {
-         PatrollingMonster patrollingmonster = EntityType.PILLAGER.create(p_224533_);
-         if (patrollingmonster != null) {
-            if (p_224536_) {
-               patrollingmonster.setPatrolLeader(true);
-               patrollingmonster.findPatrolTarget();
-            }
+                            if (player.isSpectator())
+                            {
+                                return 0;
+                            }
+                            else if (pLevel.isCloseToVillage(player.blockPosition(), 2))
+                            {
+                                return 0;
+                            }
+                            else
+                            {
+                                int k = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
+                                int l = (24 + randomsource.nextInt(24)) * (randomsource.nextBoolean() ? -1 : 1);
+                                BlockPos.MutableBlockPos blockpos$mutableblockpos = player.blockPosition().mutable().move(k, 0, l);
+                                int i1 = 10;
 
-            patrollingmonster.setPos((double)p_224534_.getX(), (double)p_224534_.getY(), (double)p_224534_.getZ());
-            patrollingmonster.finalizeSpawn(p_224533_, p_224533_.getCurrentDifficultyAt(p_224534_), MobSpawnType.PATROL, (SpawnGroupData)null, (CompoundTag)null);
-            p_224533_.addFreshEntityWithPassengers(patrollingmonster);
-            return true;
-         } else {
+                                if (!pLevel.hasChunksAt(blockpos$mutableblockpos.getX() - 10, blockpos$mutableblockpos.getZ() - 10, blockpos$mutableblockpos.getX() + 10, blockpos$mutableblockpos.getZ() + 10))
+                                {
+                                    return 0;
+                                }
+                                else
+                                {
+                                    Holder<Biome> holder = pLevel.getBiome(blockpos$mutableblockpos);
+
+                                    if (holder.is(BiomeTags.WITHOUT_PATROL_SPAWNS))
+                                    {
+                                        return 0;
+                                    }
+                                    else
+                                    {
+                                        int j1 = 0;
+                                        int k1 = (int)Math.ceil((double)pLevel.getCurrentDifficultyAt(blockpos$mutableblockpos).getEffectiveDifficulty()) + 1;
+
+                                        for (int l1 = 0; l1 < k1; ++l1)
+                                        {
+                                            ++j1;
+                                            blockpos$mutableblockpos.setY(pLevel.getHeightmapPos(Heightmap.Types.MOTION_BLOCKING_NO_LEAVES, blockpos$mutableblockpos).getY());
+
+                                            if (l1 == 0)
+                                            {
+                                                if (!this.spawnPatrolMember(pLevel, blockpos$mutableblockpos, randomsource, true))
+                                                {
+                                                    break;
+                                                }
+                                            }
+                                            else
+                                            {
+                                                this.spawnPatrolMember(pLevel, blockpos$mutableblockpos, randomsource, false);
+                                            }
+
+                                            blockpos$mutableblockpos.setX(blockpos$mutableblockpos.getX() + randomsource.nextInt(5) - randomsource.nextInt(5));
+                                            blockpos$mutableblockpos.setZ(blockpos$mutableblockpos.getZ() + randomsource.nextInt(5) - randomsource.nextInt(5));
+                                        }
+
+                                        return j1;
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    return 0;
+                }
+            }
+        }
+    }
+
+    private boolean spawnPatrolMember(ServerLevel pLevel, BlockPos pPos, RandomSource pRandom, boolean pLeader)
+    {
+        BlockState blockstate = pLevel.getBlockState(pPos);
+
+        if (!NaturalSpawner.isValidEmptySpawnBlock(pLevel, pPos, blockstate, blockstate.getFluidState(), EntityType.PILLAGER))
+        {
             return false;
-         }
-      }
-   }
+        }
+        else if (!PatrollingMonster.checkPatrollingMonsterSpawnRules(EntityType.PILLAGER, pLevel, MobSpawnType.PATROL, pPos, pRandom))
+        {
+            return false;
+        }
+        else
+        {
+            PatrollingMonster patrollingmonster = EntityType.PILLAGER.create(pLevel);
+
+            if (patrollingmonster != null)
+            {
+                if (pLeader)
+                {
+                    patrollingmonster.setPatrolLeader(true);
+                    patrollingmonster.findPatrolTarget();
+                }
+
+                patrollingmonster.setPos((double)pPos.getX(), (double)pPos.getY(), (double)pPos.getZ());
+                patrollingmonster.finalizeSpawn(pLevel, pLevel.getCurrentDifficultyAt(pPos), MobSpawnType.PATROL, (SpawnGroupData)null, (CompoundTag)null);
+                pLevel.addFreshEntityWithPassengers(patrollingmonster);
+                return true;
+            }
+            else
+            {
+                return false;
+            }
+        }
+    }
 }

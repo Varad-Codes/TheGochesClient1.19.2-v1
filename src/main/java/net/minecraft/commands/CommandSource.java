@@ -2,33 +2,37 @@ package net.minecraft.commands;
 
 import net.minecraft.network.chat.Component;
 
-public interface CommandSource {
-   CommandSource NULL = new CommandSource() {
-      public void sendSystemMessage(Component p_230799_) {
-      }
+public interface CommandSource
+{
+    CommandSource NULL = new CommandSource()
+    {
+        public void sendSystemMessage(Component p_230799_)
+        {
+        }
+        public boolean acceptsSuccess()
+        {
+            return false;
+        }
+        public boolean acceptsFailure()
+        {
+            return false;
+        }
+        public boolean shouldInformAdmins()
+        {
+            return false;
+        }
+    };
 
-      public boolean acceptsSuccess() {
-         return false;
-      }
+    void sendSystemMessage(Component p_230797_);
 
-      public boolean acceptsFailure() {
-         return false;
-      }
+    boolean acceptsSuccess();
 
-      public boolean shouldInformAdmins() {
-         return false;
-      }
-   };
+    boolean acceptsFailure();
 
-   void sendSystemMessage(Component p_230797_);
+    boolean shouldInformAdmins();
 
-   boolean acceptsSuccess();
-
-   boolean acceptsFailure();
-
-   boolean shouldInformAdmins();
-
-   default boolean alwaysAccepts() {
-      return false;
-   }
+default boolean alwaysAccepts()
+    {
+        return false;
+    }
 }

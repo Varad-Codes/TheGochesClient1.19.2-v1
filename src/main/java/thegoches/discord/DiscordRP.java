@@ -23,10 +23,12 @@ public class DiscordRP {
         lib.Discord_Shutdown();
     }
 
-    public void updatePresence(String details){
+    public void updatePresence(String details, String state){
         presence.startTimestamp = System.currentTimeMillis() / 1000;
-        // epoch second
+
         presence.details = details;
+        presence.state = state;
+        presence.largeImageKey = "logo-temp";
         lib.Discord_UpdatePresence(presence);
 
         new Thread(() -> {

@@ -22,6 +22,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class JoinMultiplayerScreen extends Screen {
@@ -43,6 +44,8 @@ public class JoinMultiplayerScreen extends Screen {
 
    public JoinMultiplayerScreen(Screen p_99688_) {
       super(Component.translatable("multiplayer.title"));
+
+      DiscordRP.INSTANCE.updatePresence("Multiplayer", "Joining a server...");
       this.lastScreen = p_99688_;
    }
 

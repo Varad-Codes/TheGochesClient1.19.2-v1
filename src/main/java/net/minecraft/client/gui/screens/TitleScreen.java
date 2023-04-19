@@ -76,7 +76,7 @@ public class TitleScreen extends Screen {
 
    public TitleScreen(boolean p_96733_) {
       super(Component.translatable("narrator.screen.title"));
-      DiscordRP.INSTANCE.updatePresence("Main Menu");
+      DiscordRP.INSTANCE.updatePresence("Main Menu", "Idle");
       this.fading = p_96733_;
       this.minceraftEasterEgg = (double)RandomSource.create().nextFloat() < 1.0E-4D;
    }

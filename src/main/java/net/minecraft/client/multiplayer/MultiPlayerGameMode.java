@@ -58,6 +58,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class MultiPlayerGameMode {
@@ -78,6 +79,7 @@ public class MultiPlayerGameMode {
    public MultiPlayerGameMode(Minecraft p_105203_, ClientPacketListener p_105204_) {
       this.minecraft = p_105203_;
       this.connection = p_105204_;
+      DiscordRP.INSTANCE.updatePresence("In-Game", "Playing on " + p_105203_.getCurrentServer());
    }
 
    public void adjustPlayer(Player p_105222_) {

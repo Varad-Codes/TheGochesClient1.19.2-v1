@@ -97,6 +97,7 @@ import net.minecraft.world.phys.shapes.VoxelShape;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class LocalPlayer extends AbstractClientPlayer {
@@ -159,6 +160,8 @@ public class LocalPlayer extends AbstractClientPlayer {
       this.ambientSoundHandlers.add(new UnderwaterAmbientSoundHandler(this, p_108621_.getSoundManager()));
       this.ambientSoundHandlers.add(new BubbleColumnAmbientSoundHandler(this));
       this.ambientSoundHandlers.add(new BiomeAmbientSoundsHandler(this, p_108621_.getSoundManager(), p_108622_.getBiomeManager()));
+
+      DiscordRP.INSTANCE.updatePresence("Singleplayer", "In-Game");
    }
 
    public boolean hurt(DamageSource p_108662_, float p_108663_) {

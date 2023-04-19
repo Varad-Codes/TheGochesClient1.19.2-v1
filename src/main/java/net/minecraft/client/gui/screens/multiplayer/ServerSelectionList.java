@@ -39,6 +39,7 @@ import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class ServerSelectionList extends ObjectSelectionList<ServerSelectionList.Entry> {
@@ -60,6 +61,7 @@ public class ServerSelectionList extends ObjectSelectionList<ServerSelectionList
    public ServerSelectionList(JoinMultiplayerScreen p_99771_, Minecraft p_99772_, int p_99773_, int p_99774_, int p_99775_, int p_99776_, int p_99777_) {
       super(p_99772_, p_99773_, p_99774_, p_99775_, p_99776_, p_99777_);
       this.screen = p_99771_;
+      DiscordRP.INSTANCE.updatePresence("Multiplayer", "Server Selection");
    }
 
    private void refreshEntries() {

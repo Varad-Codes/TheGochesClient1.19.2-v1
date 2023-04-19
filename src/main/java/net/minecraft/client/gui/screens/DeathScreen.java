@@ -12,6 +12,7 @@ import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
 import net.minecraftforge.api.distmarker.Dist;
 import net.minecraftforge.api.distmarker.OnlyIn;
+import thegoches.discord.DiscordRP;
 
 @OnlyIn(Dist.CLIENT)
 public class DeathScreen extends Screen {
@@ -25,6 +26,7 @@ public class DeathScreen extends Screen {
       super(Component.translatable(p_95912_ ? "deathScreen.title.hardcore" : "deathScreen.title"));
       this.causeOfDeath = p_95911_;
       this.hardcore = p_95912_;
+      DiscordRP.INSTANCE.updatePresence("Homie Died lol", "RIP");
    }
 
    protected void init() {

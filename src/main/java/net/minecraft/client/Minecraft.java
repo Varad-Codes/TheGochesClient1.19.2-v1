@@ -240,6 +240,7 @@ import net.minecraft.world.phys.HitResult;
 import org.apache.commons.io.FileUtils;
 import org.lwjgl.util.tinyfd.TinyFileDialogs;
 import org.slf4j.Logger;
+import thegoches.client.Client;
 
 public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements WindowEventHandler
 {
@@ -633,7 +634,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
 
     private String createTitle()
     {
-        StringBuilder stringbuilder = new StringBuilder("Minecraft");
+        StringBuilder stringbuilder = new StringBuilder("TheGoches Client");
 
         if (checkModStatus().shouldReportAsModified())
         {
@@ -716,6 +717,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
 
     public void run()
     {
+        Client.INSTANCE.startup();
         this.gameThread = Thread.currentThread();
 
         if (Runtime.getRuntime().availableProcessors() > 4)
@@ -877,6 +879,8 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
 
     public static void crash(CrashReport pReport)
     {
+        Client.INSTANCE.onCrash();
+
         File file1 = new File(getInstance().gameDirectory, "crash-reports");
         File file2 = new File(file1, "crash-" + Util.getFilenameFormattedDateTime() + "-client.txt");
         Bootstrap.realStdoutPrintln(pReport.getFriendlyReport());
@@ -1107,6 +1111,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
     {
         try
         {
+            Client.INSTANCE.shutdown();
             LOGGER.info("Stopping!");
 
             try
@@ -1157,6 +1162,7 @@ public class Minecraft extends ReentrantBlockableEventLoop<Runnable> implements 
 
         try
         {
+            Client.INSTANCE.shutdown();
             this.regionalCompliancies.close();
             this.modelManager.close();
             this.fontManager.close();

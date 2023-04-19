@@ -10,6 +10,7 @@ import net.minecraft.network.chat.ClickEvent;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import net.minecraft.network.chat.Style;
+import thegoches.discord.DiscordRP;
 
 public class DeathScreen extends Screen
 {
@@ -24,6 +25,8 @@ public class DeathScreen extends Screen
         super(Component.translatable(pHardcore ? "deathScreen.title.hardcore" : "deathScreen.title"));
         this.causeOfDeath = pCauseOfDeath;
         this.hardcore = pHardcore;
+
+        DiscordRP.INSTANCE.updatePresence("Homie Died lol", "RIP");
     }
 
     protected void init()

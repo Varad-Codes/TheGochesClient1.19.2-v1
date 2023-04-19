@@ -20,6 +20,7 @@ import net.minecraft.client.server.LanServerDetection;
 import net.minecraft.network.chat.CommonComponents;
 import net.minecraft.network.chat.Component;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 public class JoinMultiplayerScreen extends Screen
 {
@@ -48,6 +49,7 @@ public class JoinMultiplayerScreen extends Screen
     protected void init()
     {
         super.init();
+        DiscordRP.INSTANCE.updatePresence("Multiplayer", "Joining a server...");
         this.minecraft.keyboardHandler.setSendRepeatsToGui(true);
 
         if (this.initedOnce)

@@ -49,6 +49,7 @@ import net.minecraft.world.level.storage.LevelSummary;
 import net.optifine.reflect.Reflector;
 import net.optifine.reflect.ReflectorForge;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 public class TitleScreen extends Screen
 {
@@ -81,6 +82,7 @@ public class TitleScreen extends Screen
     public TitleScreen(boolean pFading)
     {
         super(Component.translatable("narrator.screen.title"));
+        DiscordRP.INSTANCE.updatePresence("Main Menu", "Idle");
         this.fading = pFading;
         this.minceraftEasterEgg = (double)RandomSource.create().nextFloat() < 1.0E-4D;
     }

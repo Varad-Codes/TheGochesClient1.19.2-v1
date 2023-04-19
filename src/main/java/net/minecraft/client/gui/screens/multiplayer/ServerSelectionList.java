@@ -37,6 +37,7 @@ import net.minecraft.resources.ResourceLocation;
 import net.minecraft.util.FormattedCharSequence;
 import org.apache.commons.lang3.Validate;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 public class ServerSelectionList extends ObjectSelectionList<ServerSelectionList.Entry>
 {
@@ -59,6 +60,7 @@ public class ServerSelectionList extends ObjectSelectionList<ServerSelectionList
     {
         super(pMinecraft, pWidth, pHeight, pY0, pY1, pItemHeight);
         this.screen = pScreen;
+        DiscordRP.INSTANCE.updatePresence("Multiplayer", "Server Selection");
     }
 
     private void refreshEntries()

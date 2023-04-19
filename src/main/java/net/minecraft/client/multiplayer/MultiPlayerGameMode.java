@@ -56,6 +56,7 @@ import net.minecraft.world.phys.EntityHitResult;
 import net.minecraft.world.phys.Vec3;
 import org.apache.commons.lang3.mutable.MutableObject;
 import org.slf4j.Logger;
+import thegoches.discord.DiscordRP;
 
 public class MultiPlayerGameMode
 {
@@ -77,6 +78,7 @@ public class MultiPlayerGameMode
     {
         this.minecraft = pMinecraft;
         this.connection = pConnection;
+        DiscordRP.INSTANCE.updatePresence("Multiplayer", "In-game" + " - " + pMinecraft.getCurrentServer());
     }
 
     public void adjustPlayer(Player pPlayer)
